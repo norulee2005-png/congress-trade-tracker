@@ -1,65 +1,156 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { getRecentTrades, getTradeStats, getTopBoughtStocks, getKrwRate } from '@/lib/queries/dashboard-queries';
+import {
+  formatTradeType,
+  tradeTypeBadgeClass,
+  formatParty,
+  partyBadgeClass,
+  formatAmountUsd,
+  formatDate,
+} from '@/lib/format-trade';
 
-export default function Home() {
+// Always render at runtime so DB data is live; revalidate every 30 minutes
+export const dynamic = 'force-dynamic';
+export const revalidate = 1800;
+
+export default async function DashboardPage() {
+  const [recentTrades, stats7d, stats30d, topStocks, krwRate] = await Promise.all([
+    getRecentTrades(7, 30),
+    getTradeStats(7),
+    getTradeStats(30),
+    getTopBoughtStocks(10),
+    getKrwRate(),
+  ]);
+
+  const statsSummary = (stats: Awaited<ReturnType<typeof getTradeStats>>) => {
+    let buys = 0, sells = 0;
+    for (const row of stats) {
+      if (row.tradeType === 'buy') buys = Number(row.tradeCount);
+      if (row.tradeType === 'sell') sells = Number(row.tradeCount);
+    }
+    return { buys, sells, total: buys + sells };
+  };
+
+  const s7 = statsSummary(stats7d);
+  const s30 = statsSummary(stats30d);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto max-w-7xl px-4 py-8 space-y-10">
+      {/* Header */}
+      <section>
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">대시보드</h1>
+            <p className="mt-1 text-sm text-zinc-500">미국 의원들의 최신 주식 거래를 한국어로 확인하세요</p>
+          </div>
+          {krwRate && (
+            <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <span className="text-zinc-500">USD/KRW</span>
+              <span className="ml-2 font-mono font-semibold text-zinc-900 dark:text-zinc-50">
+                ₩{krwRate.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      {/* Stats cards */}
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="7일 매수" value={s7.buys} accent="green" />
+        <StatCard label="7일 매도" value={s7.sells} accent="red" />
+        <StatCard label="30일 매수" value={s30.buys} accent="green" />
+        <StatCard label="30일 매도" value={s30.sells} accent="red" />
+      </section>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Recent trades */}
+        <section className="lg:col-span-2 space-y-3">
+          <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">최근 7일 거래 내역</h2>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            {recentTrades.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-zinc-400">거래 내역이 없습니다</p>
+            ) : (
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {recentTrades.map((trade) => (
+                  <div key={trade.id} className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <span className={`mt-0.5 inline-flex shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${tradeTypeBadgeClass(trade.tradeType)}`}>
+                      {formatTradeType(trade.tradeType)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/stocks/${trade.stockTicker}`} className="font-mono font-semibold text-sm text-blue-600 hover:underline dark:text-blue-400">
+                          {trade.stockTicker}
+                        </Link>
+                        <span className="text-xs text-zinc-500 truncate">{trade.stockName}</span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                        {trade.politicianSlug ? (
+                          <Link href={`/politicians/${trade.politicianSlug}`} className="text-xs text-zinc-700 hover:underline dark:text-zinc-300">
+                            {trade.politicianNameKr ?? trade.politicianNameEn}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-zinc-500">{trade.politicianNameKr ?? trade.politicianNameEn}</span>
+                        )}
+                        <span className={`inline-flex rounded px-1 py-0.5 text-xs ${partyBadgeClass(trade.politicianParty)}`}>
+                          {formatParty(trade.politicianParty)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{trade.amountRange ?? formatAmountUsd(trade.amountMin)}</p>
+                      <p className="text-xs text-zinc-400">{formatDate(trade.disclosureDate)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link href="/search" className="block text-center text-sm text-blue-600 hover:underline dark:text-blue-400">
+            전체 거래 내역 보기 →
+          </Link>
+        </section>
+
+        {/* Top bought stocks */}
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">
+            지금 의원들이 가장 많이 사는 종목 (30일)
+          </h2>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            {topStocks.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-zinc-400">데이터 없음</p>
+            ) : (
+              <ol className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {topStocks.map((stock, i) => (
+                  <li key={stock.stockTicker} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <span className="w-5 shrink-0 text-center text-sm font-bold text-zinc-400">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/stocks/${stock.stockTicker}`} className="font-mono font-semibold text-sm text-blue-600 hover:underline dark:text-blue-400">
+                        {stock.stockTicker}
+                      </Link>
+                      <p className="text-xs text-zinc-500 truncate">{stock.stockName}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                      {stock.buyCount}건
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent }: { label: string; value: number; accent: 'green' | 'red' }) {
+  const colorClass = accent === 'green'
+    ? 'text-green-600 dark:text-green-400'
+    : 'text-red-600 dark:text-red-400';
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${colorClass}`}>{value.toLocaleString()}</p>
     </div>
   );
 }
