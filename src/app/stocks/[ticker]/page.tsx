@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import SnsShareButtons from '@/components/sns-share-buttons';
 import {
   getStockByTicker,
   getAllTradedTickers,
@@ -36,9 +37,24 @@ export async function generateMetadata({ params }: { params: Promise<{ ticker: s
   const upper = ticker.toUpperCase();
   const stock = await getStockByTicker(upper);
   const name = stock?.nameKr ?? stock?.nameEn ?? upper;
+  const description = `${name}(${upper}) 종목의 미국 의회 의원 거래 현황 및 트렌드 — STOCK Act 공시 한국어`;
+  const ogImageUrl = `/api/og/stock/${upper}`;
   return {
     title: `${upper} - ${name} 의원 거래`,
-    description: `${name}(${upper}) 종목의 미국 의회 의원 거래 현황 및 트렌드`,
+    description,
+    openGraph: {
+      title: `${upper} ${name} — 의원 거래 현황`,
+      description,
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+      locale: 'ko_KR',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${upper} ${name} — 의원 거래`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -63,8 +79,21 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
   const uniqueBuyers = Number(buyStats?.uniquePoliticians ?? 0);
   const uniqueSellers = Number(sellStats?.uniquePoliticians ?? 0);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FinancialProduct',
+    name: stock?.nameEn ?? upper,
+    alternateName: stock?.nameKr ?? undefined,
+    tickerSymbol: upper,
+    url: `/stocks/${upper}`,
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="text-sm text-zinc-500">
         <Link href="/" className="hover:underline">대시보드</Link>
@@ -97,6 +126,12 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
                   {stock.industry}
                 </span>
               )}
+            </div>
+            <div className="mt-3">
+              <SnsShareButtons
+                url={`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/stocks/${upper}`}
+                text={`${upper} ${stock?.nameKr ?? stock?.nameEn ?? ''} 의원 거래 현황 — 의회 주식 추적기`}
+              />
             </div>
           </div>
           {stock?.currentPrice && (

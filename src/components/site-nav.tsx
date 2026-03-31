@@ -1,16 +1,9 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import NavLinks from './nav-links';
+import { getSession } from '@/lib/auth-session';
 
-const NAV_LINKS = [
-  { href: '/', label: '대시보드' },
-  { href: '/rankings', label: '랭킹' },
-  { href: '/search', label: '검색' },
-];
-
-export default function SiteNav() {
-  const pathname = usePathname();
+export default async function SiteNav() {
+  const session = await getSession();
 
   return (
     <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -19,24 +12,26 @@ export default function SiteNav() {
           <span className="text-blue-600">🏛</span>
           <span>의회 주식 추적기</span>
         </Link>
-        <nav className="flex items-center gap-1">
-          {NAV_LINKS.map(({ href, label }) => {
-            const active = pathname === href;
-            return (
+        <div className="flex items-center gap-2">
+          <NavLinks />
+          <div className="ml-2 flex items-center gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+            {session ? (
               <Link
-                key={href}
-                href={href}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
-                }`}
+                href="/account"
+                className="rounded-md px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
               >
-                {label}
+                내 계정
               </Link>
-            );
-          })}
-        </nav>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                로그인
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );

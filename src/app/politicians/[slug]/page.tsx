@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import SnsShareButtons from '@/components/sns-share-buttons';
 import {
   getPoliticianBySlug,
   getAllPoliticianSlugs,
@@ -36,9 +37,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const politician = await getPoliticianBySlug(slug);
   if (!politician) return {};
   const name = politician.nameKr ?? politician.nameEn;
+  const description = `${name} 의원의 전체 주식 거래 내역, 포트폴리오 분석 — STOCK Act 공시 데이터 한국어 서비스`;
+  const ogImageUrl = `/api/og/politician/${slug}`;
   return {
     title: `${name} 의원 주식 거래`,
-    description: `${name} 의원의 전체 주식 거래 내역, 포트폴리오 분석`,
+    description,
+    openGraph: {
+      title: `${name} 의원 주식 거래`,
+      description,
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+      locale: 'ko_KR',
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${name} 의원 주식 거래`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -60,8 +76,22 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
   const totalSells = Number(sellStats?.tradeCount ?? 0);
   const netPositionMin = Number(buyStats?.totalAmountMin ?? 0) - Number(sellStats?.totalAmountMin ?? 0);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: politician.nameEn,
+    alternateName: politician.nameKr ?? undefined,
+    jobTitle: politician.chamber === 'senate' ? 'United States Senator' : 'United States Representative',
+    memberOf: { '@type': 'Organization', name: politician.party ?? undefined },
+    url: `/politicians/${politician.slug}`,
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="text-sm text-zinc-500">
         <Link href="/" className="hover:underline">대시보드</Link>
@@ -90,6 +120,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${partyBadgeClass(politician.party)}`}>
               {formatParty(politician.party)}
             </span>
+
             <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
               {formatChamber(politician.chamber)}
             </span>
@@ -101,6 +132,12 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
                 {politician.committee}
               </span>
             )}
+          </div>
+          <div className="mt-3">
+            <SnsShareButtons
+              url={`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/politicians/${slug}`}
+              text={`${politician.nameKr ?? politician.nameEn} 의원 주식 거래 현황 — 의회 주식 추적기`}
+            />
           </div>
         </div>
       </section>

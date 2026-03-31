@@ -7,6 +7,9 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://congress-trade-tracker.vercel.app',
+  ),
   title: {
     default: '의회 주식 추적기 - 미국 의원 주식 거래 한국어 분석',
     template: '%s | 의회 주식 추적기',
@@ -18,6 +21,11 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ko_KR',
     siteName: '의회 주식 추적기',
+    images: [{ url: '/api/og/top5', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/api/og/top5'],
   },
 };
 
