@@ -1,6 +1,6 @@
 import { db } from '@/db/db-client';
 import { trades, politicians } from '@/db/schema';
-import { desc, gte, eq, sql, count } from 'drizzle-orm';
+import { desc, gte, eq, and, sql, count } from 'drizzle-orm';
 
 function daysAgo(days: number): string {
   const d = new Date();
@@ -64,8 +64,11 @@ export async function getPartyBuySellRatio() {
     .orderBy(politicians.party);
 }
 
-// Top politicians by total estimated buy amount (portfolio proxy)
+// Top politicians by total estimated buy amount in the current calendar month
 export async function getTopBuyersByAmount(limit: number = 10) {
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
   return db
     .select({
       politicianSlug: politicians.slug,
@@ -79,7 +82,7 @@ export async function getTopBuyersByAmount(limit: number = 10) {
     })
     .from(trades)
     .leftJoin(politicians, eq(trades.politicianId, politicians.id))
-    .where(eq(trades.tradeType, 'buy'))
+    .where(and(eq(trades.tradeType, 'buy'), gte(trades.disclosureDate, monthStart)))
     .groupBy(
       politicians.slug,
       politicians.nameEn,

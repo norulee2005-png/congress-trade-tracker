@@ -48,10 +48,15 @@ export async function POST(req: NextRequest) {
 
   const configJson = channel === 'discord' ? JSON.stringify({ webhookUrl: channelConfig.webhookUrl }) : null;
 
+  // Normalize stock ticker to uppercase for consistent matching
+  const normalizedTargetId = alertType === 'stock' && targetId
+    ? String(targetId).toUpperCase().trim()
+    : targetId ?? null;
+
   const created = await db.insert(alerts).values({
     userId: session.userId,
     alertType,
-    targetId: targetId ?? null,
+    targetId: normalizedTargetId,
     channel,
     channelConfig: configJson,
     isActive: true,
