@@ -2,14 +2,13 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import SiteNav from '@/components/site-nav';
+import { SITE_URL } from '@/lib/site-url';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://congress-trade-tracker.vercel.app',
-  ),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: '의회 주식 추적기 - 미국 의원 주식 거래 한국어 분석',
     template: '%s | 의회 주식 추적기',
@@ -26,6 +25,10 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     images: ['/api/og/top5'],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

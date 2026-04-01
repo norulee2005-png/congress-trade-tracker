@@ -16,6 +16,9 @@ import {
 export const metadata: Metadata = {
   title: '랭킹',
   description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
+  alternates: {
+    canonical: '/rankings',
+  },
 };
 
 export const dynamic = 'force-dynamic';

@@ -3,18 +3,21 @@ import Link from 'next/link';
 import { getTopBuyersByAmount } from '@/lib/queries/ranking-queries';
 import { formatParty, partyBadgeClass, formatChamber, formatAmountUsd } from '@/lib/format-trade';
 import SnsShareButtons from '@/components/sns-share-buttons';
+import { SITE_URL, absoluteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 21600; // 6 hours
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://congress-trade-tracker.vercel.app';
-
 export const metadata: Metadata = {
   title: '이번 달 TOP 5 매수 의원',
   description: '이번 달 미국 의회에서 가장 많이 매수한 의원 TOP 5 — STOCK Act 공시 기반 한국어 분석',
+  alternates: {
+    canonical: '/top5',
+  },
   openGraph: {
     title: '이번 달 TOP 5 매수 의원 | 의회 주식 추적기',
     description: '이번 달 미국 의회에서 가장 많이 매수한 의원 TOP 5',
+    url: '/top5',
     images: [{ url: '/api/og/top5', width: 1200, height: 630 }],
     locale: 'ko_KR',
     type: 'website',
@@ -61,13 +64,13 @@ export default async function Top5Page() {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: `${monthLabel} TOP 5 매수 의원`,
-    url: `${SITE_URL}/top5`,
+    url: absoluteUrl('/top5'),
     numberOfItems: top5.length,
     itemListElement: top5.map((p, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: p.politicianNameKr ?? p.politicianNameEn,
-      url: `${SITE_URL}/politicians/${p.politicianSlug}`,
+      url: absoluteUrl(`/politicians/${p.politicianSlug}`),
     })),
   };
 

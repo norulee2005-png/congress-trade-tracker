@@ -18,6 +18,7 @@ import {
   formatAmountUsd,
   formatDate,
 } from '@/lib/format-trade';
+import { absoluteUrl } from '@/lib/site-url';
 
 // Fall back to empty list at build time when DB is unavailable; dynamicParams
 // = true ensures runtime rendering still works for all slugs.
@@ -42,9 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${name} 의원 주식 거래`,
     description,
+    alternates: {
+      canonical: `/politicians/${slug}`,
+    },
     openGraph: {
       title: `${name} 의원 주식 거래`,
       description,
+      url: `/politicians/${slug}`,
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
       locale: 'ko_KR',
       type: 'profile',
@@ -83,7 +88,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
     alternateName: politician.nameKr ?? undefined,
     jobTitle: politician.chamber === 'senate' ? 'United States Senator' : 'United States Representative',
     memberOf: { '@type': 'Organization', name: politician.party ?? undefined },
-    url: `/politicians/${politician.slug}`,
+    url: absoluteUrl(`/politicians/${politician.slug}`),
   };
 
   return (
@@ -135,7 +140,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
           </div>
           <div className="mt-3">
             <SnsShareButtons
-              url={`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/politicians/${slug}`}
+              url={absoluteUrl(`/politicians/${slug}`)}
               text={`${politician.nameKr ?? politician.nameEn} 의원 주식 거래 현황 — 의회 주식 추적기`}
             />
           </div>

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getRecentTrades, getTradeStats, getTopBoughtStocks, getKrwRate } from '@/lib/queries/dashboard-queries';
 import {
@@ -12,6 +13,12 @@ import {
 // Always render at runtime so DB data is live; revalidate every 30 minutes
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default async function DashboardPage() {
   const [recentTrades, stats7d, stats30d, topStocks, krwRate] = await Promise.all([

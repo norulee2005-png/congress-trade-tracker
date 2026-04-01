@@ -8,7 +8,16 @@ import AlertsManager from '@/components/alerts-manager';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: '알림 설정' };
+export const metadata: Metadata = {
+  title: '알림 설정',
+  alternates: {
+    canonical: '/alerts',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AlertsPage() {
   const session = await getSession();

@@ -18,6 +18,7 @@ import {
   formatAmountUsd,
   formatDate,
 } from '@/lib/format-trade';
+import { absoluteUrl } from '@/lib/site-url';
 
 // Fall back to empty list at build time when DB is unavailable; dynamicParams
 // = true ensures runtime rendering still works for all tickers.
@@ -42,9 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<{ ticker: s
   return {
     title: `${upper} - ${name} 의원 거래`,
     description,
+    alternates: {
+      canonical: `/stocks/${upper}`,
+    },
     openGraph: {
       title: `${upper} ${name} — 의원 거래 현황`,
       description,
+      url: `/stocks/${upper}`,
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
       locale: 'ko_KR',
       type: 'website',
@@ -85,7 +90,7 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
     name: stock?.nameEn ?? upper,
     alternateName: stock?.nameKr ?? undefined,
     tickerSymbol: upper,
-    url: `/stocks/${upper}`,
+    url: absoluteUrl(`/stocks/${upper}`),
   };
 
   return (
@@ -129,7 +134,7 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
             </div>
             <div className="mt-3">
               <SnsShareButtons
-                url={`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/stocks/${upper}`}
+                url={absoluteUrl(`/stocks/${upper}`)}
                 text={`${upper} ${stock?.nameKr ?? stock?.nameEn ?? ''} 의원 거래 현황 — 의회 주식 추적기`}
               />
             </div>

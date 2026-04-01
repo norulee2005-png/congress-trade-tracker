@@ -4,6 +4,13 @@ import LoginForm from '@/components/login-form';
 export const metadata: Metadata = {
   title: '로그인',
   description: '이메일 매직 링크로 로그인하세요.',
+  alternates: {
+    canonical: '/login',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function LoginPage({

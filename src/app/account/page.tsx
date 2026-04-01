@@ -8,7 +8,16 @@ import AccountActions from '@/components/account-actions';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: '내 계정' };
+export const metadata: Metadata = {
+  title: '내 계정',
+  alternates: {
+    canonical: '/account',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AccountPage({
   searchParams,

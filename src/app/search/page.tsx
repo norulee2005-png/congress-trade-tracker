@@ -18,6 +18,9 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: '검색',
   description: '의원 이름, 종목, 정당, 거래 유형으로 미국 의회 주식 거래를 검색하세요',
+  alternates: {
+    canonical: '/search',
+  },
 };
 
 const PAGE_SIZE = 50;
