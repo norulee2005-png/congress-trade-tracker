@@ -48,13 +48,24 @@ export default async function BlogPostPage({ params }: PageProps) {
     headline: post.title,
     description: post.description,
     datePublished: post.date,
+    dateModified: post.date,
     inLanguage: 'ko',
+    author: {
+      '@type': 'Organization',
+      name: '의회 주식 추적기',
+      url: absoluteUrl('/'),
+    },
     publisher: {
       '@type': 'Organization',
       name: '의회 주식 추적기',
       url: absoluteUrl('/'),
     },
+    image: absoluteUrl('/api/og/top5'),
     url: absoluteUrl(`/blog/${slug}`),
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': absoluteUrl(`/blog/${slug}`),
+    },
   };
 
   const breadcrumbJsonLd = {
