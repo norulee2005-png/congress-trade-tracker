@@ -7,10 +7,13 @@ import { db } from '../src/db/db-client';
 import { politicians } from '../src/db/schema';
 import { POLITICIAN_SEEDS } from '../src/lib/seed-politicians';
 import { runSenatePipeline, runHousePipeline } from '../src/lib/trade-pipeline';
+import koreanNames from '../src/data/politician-names-kr.json';
 
 async function seedPoliticians() {
   console.log('[Seed] Inserting known politicians...');
   for (const p of POLITICIAN_SEEDS) {
+    // Prefer JSON Korean name map; fall back to seed data value
+    const nameKr = (koreanNames as Record<string, string>)[p.slug] ?? p.nameKr;
     await db
       .insert(politicians)
       .values({
@@ -18,7 +21,7 @@ async function seedPoliticians() {
         firstName: p.firstName,
         lastName: p.lastName,
         nameEn: p.nameEn,
-        nameKr: p.nameKr,
+        nameKr,
         party: p.party,
         chamber: p.chamber,
         state: p.state,
