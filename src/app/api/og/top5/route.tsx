@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { getTopBuyersByAmount } from '@/lib/queries/ranking-queries';
+import { getTopReturnPoliticians } from '@/lib/queries/return-queries';
 import { formatParty } from '@/lib/format-trade';
 
 export const runtime = 'edge';
@@ -19,6 +20,9 @@ function formatAmountShort(val: number): string {
   return `$${val}`;
 }
 
+// Return % map keyed by nameEn for OG overlay
+type ReturnMap = Map<string, number>;
+
 export async function GET() {
   let top5: Array<{
     politicianNameKr: string | null;
@@ -27,9 +31,13 @@ export async function GET() {
     totalAmountMin: string;
     tradeCount: number;
   }> = [];
+  const returnMap: ReturnMap = new Map();
 
   try {
-    const rows = await getTopBuyersByAmount(5);
+    const [rows, returnRows] = await Promise.all([
+      getTopBuyersByAmount(5),
+      getTopReturnPoliticians(365, 20),
+    ]);
     top5 = rows.map((r) => ({
       politicianNameKr: r.politicianNameKr,
       politicianNameEn: r.politicianNameEn ?? '',
@@ -37,6 +45,9 @@ export async function GET() {
       totalAmountMin: r.totalAmountMin,
       tradeCount: Number(r.tradeCount),
     }));
+    for (const r of returnRows) {
+      if (r.politicianNameEn) returnMap.set(r.politicianNameEn, r.avgReturnPct);
+    }
   } catch {
     // fallback — render placeholder card
   }
@@ -95,6 +106,8 @@ export async function GET() {
               const name = p.politicianNameKr ?? p.politicianNameEn;
               const amount = Number(p.totalAmountMin);
               const pColor = partyColor(p.politicianParty);
+              const retPct = returnMap.get(p.politicianNameEn) ?? null;
+              const retColor = retPct === null ? '#64748b' : retPct >= 0 ? '#22c55e' : '#ef4444';
               return (
                 <div
                   key={i}
@@ -142,6 +155,10 @@ export async function GET() {
                   {/* Party label */}
                   <div style={{ color: pColor, fontSize: '15px', fontWeight: 600, minWidth: '50px', textAlign: 'right' }}>
                     {formatParty(p.politicianParty)}
+                  </div>
+                  {/* Estimated return */}
+                  <div style={{ color: retColor, fontSize: '18px', fontWeight: 700, minWidth: '80px', textAlign: 'right' }}>
+                    {retPct !== null ? `${retPct >= 0 ? '+' : ''}${retPct.toFixed(1)}%` : '-'}
                   </div>
                   {/* Amount */}
                   <div

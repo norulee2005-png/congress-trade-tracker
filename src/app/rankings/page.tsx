@@ -6,6 +6,7 @@ import {
   getPartyBuySellRatio,
   getTopBuyersByAmount,
 } from '@/lib/queries/ranking-queries';
+import { getTopReturnPoliticians } from '@/lib/queries/return-queries';
 import {
   formatParty,
   partyBadgeClass,
@@ -38,11 +39,12 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function RankingsPage() {
-  const [activeTraders, topStocks, partyRatio, topBuyers] = await Promise.all([
+  const [activeTraders, topStocks, partyRatio, topBuyers, topReturns] = await Promise.all([
     getMostActiveTraders(30, 10),
     getMostTradedStocks(20),
     getPartyBuySellRatio(),
     getTopBuyersByAmount(10),
+    getTopReturnPoliticians(365, 10),
   ]);
 
   // JSON-LD: BreadcrumbList for this page
@@ -198,6 +200,59 @@ export default async function RankingsPage() {
           </div>
         </section>
       </div>
+
+      {/* Profit rankings — estimated returns */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">수익률 TOP 10 의원 (추정)</h2>
+          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            추정치
+          </span>
+        </div>
+        <p className="text-xs text-zinc-400">
+          수익률은 공시일 기준 추정치이며, 실제 수익률과 다를 수 있습니다. 최근 365일 매수 거래 기준 (3건 이상).
+        </p>
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          {topReturns.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-zinc-400">
+              수익률 데이터 없음 — 주가 동기화 후 표시됩니다
+            </p>
+          ) : (
+            <ol className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {topReturns.map((p, i) => {
+                const isPositive = p.avgReturnPct >= 0;
+                return (
+                  <li key={p.politicianSlug ?? i} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <span className={`w-6 shrink-0 text-center text-sm font-bold ${i < 3 ? 'text-yellow-500' : 'text-zinc-400'}`}>{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      {p.politicianSlug ? (
+                        <Link href={`/politicians/${p.politicianSlug}`} className="font-medium text-blue-600 hover:underline dark:text-blue-400 truncate block">
+                          {p.politicianNameKr ?? p.politicianNameEn}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">{p.politicianNameKr ?? p.politicianNameEn}</span>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`inline-flex rounded px-1.5 py-0.5 text-xs ${partyBadgeClass(p.politicianParty)}`}>
+                          {formatParty(p.politicianParty)}
+                        </span>
+                        <span className="text-xs text-zinc-400">{formatChamber(p.politicianChamber)}</span>
+                        <span className="text-xs text-zinc-400">{p.tradeCount}건</span>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className={`text-base font-bold tabular-nums ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {isPositive ? '+' : ''}{p.avgReturnPct.toFixed(2)}%
+                      </span>
+                      <p className="text-xs text-amber-500 dark:text-amber-400">추정</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      </section>
 
       {/* Most traded stocks */}
       <section className="space-y-3">

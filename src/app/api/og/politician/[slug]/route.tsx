@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { getPoliticianBySlug, getPoliticianStats } from '@/lib/queries/politician-queries';
+import { getPoliticianAvgReturn } from '@/lib/queries/return-queries';
 import { formatParty, formatChamber } from '@/lib/format-trade';
 
 export const runtime = 'edge';
@@ -11,6 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   let party = '';
   let chamber = '';
   let tradeCount = 0;
+  let avgReturnPct: number | null = null;
 
   try {
     const politician = await getPoliticianBySlug(slug);
@@ -18,8 +20,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       name = politician.nameKr ?? politician.nameEn;
       party = formatParty(politician.party);
       chamber = formatChamber(politician.chamber);
-      const statsRows = await getPoliticianStats(politician.id);
+      const [statsRows, returnData] = await Promise.all([
+        getPoliticianStats(politician.id),
+        getPoliticianAvgReturn(politician.id, 365),
+      ]);
       tradeCount = statsRows.reduce((sum, r) => sum + Number(r.tradeCount), 0);
+      avgReturnPct = returnData.avgReturnPct;
     }
   } catch {
     // fallback to slug
@@ -79,6 +85,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         {tradeCount > 0 && (
           <div style={{ color: '#94a3b8', fontSize: '28px', marginTop: '20px' }}>
             총 {tradeCount}건의 공시 거래
+          </div>
+        )}
+
+        {/* Estimated return */}
+        {avgReturnPct !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+            <div
+              style={{
+                color: avgReturnPct >= 0 ? '#22c55e' : '#ef4444',
+                fontSize: '36px',
+                fontWeight: 800,
+              }}
+            >
+              {avgReturnPct >= 0 ? '+' : ''}{avgReturnPct.toFixed(2)}%
+            </div>
+            <div style={{ color: '#f59e0b', fontSize: '14px', fontWeight: 600 }}>
+              추정 수익률
+            </div>
           </div>
         )}
 

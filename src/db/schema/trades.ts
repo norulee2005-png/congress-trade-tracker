@@ -19,6 +19,7 @@ export const trades = pgTable('trades', {
   filingUrl: text('filing_url'), // source filing URL
   filingId: varchar('filing_id', { length: 100 }), // unique ID from source system
   comment: text('comment'), // optional filer comment
+  priceAtDisclosure: numeric('price_at_disclosure', { precision: 12, scale: 4 }), // stock price on disclosure date (estimate)
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({

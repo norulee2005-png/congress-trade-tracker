@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { eq, and, inArray, sql, gte } from 'drizzle-orm';
 import { db } from '@/db/db-client';
 import { politicians, trades, stocks } from '@/db/schema';
 import { nameToSlug } from './scraper-utils';
@@ -8,6 +8,7 @@ import {
   parseHouseFilingXml,
   normalizeHouseTransactions,
 } from './house-scraper';
+import { updateStockPricesInDb } from './stock-price-fetcher';
 import { createLogger } from './structured-logger';
 
 const log = createLogger('trade-pipeline');
@@ -333,6 +334,35 @@ export async function runFullPipeline(): Promise<PipelineResult> {
       errors.push(`House prior-year pipeline failed: ${msg}`);
       log.error('House prior-year pipeline failed', err);
     }
+  }
+
+  // Fetch & update current prices for tickers traded in last 30 days
+  try {
+    const thirtyDaysAgoStr = fmt(thirtyDaysAgo);
+    const recentTrades = await db
+      .select({ ticker: trades.stockTicker })
+      .from(trades)
+      .where(gte(trades.disclosureDate, thirtyDaysAgoStr));
+    const tickers = [...new Set(recentTrades.map((t) => t.ticker))];
+    log.info('Updating stock prices', { tickerCount: tickers.length });
+    await updateStockPricesInDb(tickers);
+
+    // Backfill priceAtDisclosure for new trades that lack it (use current price as approximation)
+    await db.execute(sql`
+      UPDATE trades t
+      SET price_at_disclosure = s.current_price,
+          updated_at = NOW()
+      FROM stocks s
+      WHERE t.stock_ticker = s.ticker
+        AND t.price_at_disclosure IS NULL
+        AND s.current_price IS NOT NULL
+        AND t.disclosure_date >= ${thirtyDaysAgoStr}
+    `);
+    log.info('priceAtDisclosure backfill complete');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`Price update failed: ${msg}`);
+    log.error('Stock price update failed', err);
   }
 
   const result: PipelineResult = {
