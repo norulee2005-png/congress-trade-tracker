@@ -2,6 +2,40 @@ import { db } from '@/db/db-client';
 import { trades, politicians } from '@/db/schema';
 import { desc, gte, eq, and, sql, count } from 'drizzle-orm';
 
+export type ActiveTrader = {
+  politicianSlug: string | null;
+  politicianNameEn: string | null;
+  politicianNameKr: string | null;
+  politicianParty: string | null;
+  politicianChamber: string | null;
+  tradeCount: number;
+};
+
+export type MostTradedStock = {
+  stockTicker: string;
+  stockName: string | null;
+  tradeCount: number;
+  buyCount: string;
+  sellCount: string;
+};
+
+export type PartyBuySellRow = {
+  party: string | null;
+  tradeType: string;
+  tradeCount: number;
+};
+
+export type TopBuyerRow = {
+  politicianSlug: string | null;
+  politicianNameEn: string | null;
+  politicianNameKr: string | null;
+  politicianParty: string | null;
+  politicianChamber: string | null;
+  totalAmountMin: string;
+  totalAmountMax: string;
+  tradeCount: number;
+};
+
 function daysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -9,7 +43,7 @@ function daysAgo(days: number): string {
 }
 
 // Most active traders (by trade count) in the last N days
-export async function getMostActiveTraders(days: number = 30, limit: number = 10) {
+export async function getMostActiveTraders(days: number = 30, limit: number = 10): Promise<ActiveTrader[]> {
   const since = daysAgo(days);
   return db
     .select({
@@ -35,7 +69,7 @@ export async function getMostActiveTraders(days: number = 30, limit: number = 10
 }
 
 // Most traded stocks overall (by trade count)
-export async function getMostTradedStocks(limit: number = 20) {
+export async function getMostTradedStocks(limit: number = 20): Promise<MostTradedStock[]> {
   return db
     .select({
       stockTicker: trades.stockTicker,
@@ -51,7 +85,7 @@ export async function getMostTradedStocks(limit: number = 20) {
 }
 
 // Party-level buy vs sell counts
-export async function getPartyBuySellRatio() {
+export async function getPartyBuySellRatio(): Promise<PartyBuySellRow[]> {
   return db
     .select({
       party: politicians.party,
@@ -65,7 +99,7 @@ export async function getPartyBuySellRatio() {
 }
 
 // Top politicians by total estimated buy amount in the current calendar month
-export async function getTopBuyersByAmount(limit: number = 10) {
+export async function getTopBuyersByAmount(limit: number = 10): Promise<TopBuyerRow[]> {
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 

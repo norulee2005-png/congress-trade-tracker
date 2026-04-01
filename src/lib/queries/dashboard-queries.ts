@@ -2,8 +2,40 @@ import { db } from '@/db/db-client';
 import { trades, politicians, stocks } from '@/db/schema';
 import { desc, gte, sql, and, eq, count } from 'drizzle-orm';
 
+export type RecentTrade = {
+  id: string;
+  stockTicker: string;
+  stockName: string | null;
+  tradeType: string;
+  amountRange: string | null;
+  amountMin: string | null;
+  amountMax: string | null;
+  tradeDate: string | null;
+  disclosureDate: string;
+  politicianId: string;
+  politicianSlug: string | null;
+  politicianNameEn: string | null;
+  politicianNameKr: string | null;
+  politicianParty: string | null;
+  politicianChamber: string | null;
+};
+
+export type TradeStatRow = {
+  tradeType: string;
+  tradeCount: number;
+  totalAmountMin: string;
+  totalAmountMax: string;
+};
+
+export type TopBoughtStock = {
+  stockTicker: string;
+  stockName: string | null;
+  buyCount: number;
+  totalAmountMin: string;
+};
+
 // Fetch recent trades within the last N days
-export async function getRecentTrades(days: number = 7, limit: number = 50) {
+export async function getRecentTrades(days: number = 7, limit: number = 50): Promise<RecentTrade[]> {
   const since = new Date();
   since.setDate(since.getDate() - days);
   const sinceStr = since.toISOString().split('T')[0];
@@ -34,7 +66,7 @@ export async function getRecentTrades(days: number = 7, limit: number = 50) {
 }
 
 // 7-day and 30-day stats: buy/sell counts and amounts
-export async function getTradeStats(days: number) {
+export async function getTradeStats(days: number): Promise<TradeStatRow[]> {
   const since = new Date();
   since.setDate(since.getDate() - days);
   const sinceStr = since.toISOString().split('T')[0];
@@ -54,7 +86,7 @@ export async function getTradeStats(days: number) {
 }
 
 // Top 10 most-purchased stocks by congress members in the last 30 days
-export async function getTopBoughtStocks(limit: number = 10) {
+export async function getTopBoughtStocks(limit: number = 10): Promise<TopBoughtStock[]> {
   const since = new Date();
   since.setDate(since.getDate() - 30);
   const sinceStr = since.toISOString().split('T')[0];

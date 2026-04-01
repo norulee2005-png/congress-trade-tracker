@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getRecentTrades, getTradeStats, getTopBoughtStocks, getKrwRate } from '@/lib/queries/dashboard-queries';
+import { SITE_URL } from '@/lib/site-url';
 import {
   formatTradeType,
   tradeTypeBadgeClass,
@@ -15,8 +16,24 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
+  title: {
+    absolute: '의회 주식 추적기 - 미국 의원 주식 거래 한국어 분석',
+  },
   alternates: {
     canonical: '/',
+  },
+  openGraph: {
+    title: '의회 주식 추적기 - 미국 의원 주식 거래 한국어 분석',
+    description:
+      '미국 STOCK Act 공시 데이터를 한국어로 — 의원 주식 거래를 실시간 추적하세요. 의원 프로필, 종목별 거래 현황, 랭킹을 한국어로 확인하세요.',
+    url: '/',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '의회 주식 추적기 - 미국 의원 주식 거래 한국어 분석',
+    description:
+      '미국 STOCK Act 공시 데이터를 한국어로 — 의원 주식 거래를 실시간 추적하세요.',
   },
 };
 
@@ -41,8 +58,26 @@ export default async function DashboardPage() {
   const s7 = statsSummary(stats7d);
   const s30 = statsSummary(stats30d);
 
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '의회 주식 추적기',
+    url: SITE_URL,
+    description: '미국 STOCK Act 공시 데이터를 한국어로 — 의원 주식 거래를 실시간 추적',
+    inLanguage: 'ko',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       {/* Header */}
       <section>
         <div className="flex items-start justify-between flex-wrap gap-4">

@@ -12,12 +12,25 @@ import {
   formatChamber,
   formatAmountUsd,
 } from '@/lib/format-trade';
+import { absoluteUrl } from '@/lib/site-url';
 
 export const metadata: Metadata = {
   title: '랭킹',
   description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
   alternates: {
     canonical: '/rankings',
+  },
+  openGraph: {
+    title: '의원 주식 거래 랭킹 | 의회 주식 추적기',
+    description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
+    url: '/rankings',
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '의원 주식 거래 랭킹 | 의회 주식 추적기',
+    description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
   },
 };
 
@@ -32,6 +45,31 @@ export default async function RankingsPage() {
     getTopBuyersByAmount(10),
   ]);
 
+  // JSON-LD: BreadcrumbList for this page
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '대시보드', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: '랭킹', item: absoluteUrl('/rankings') },
+    ],
+  };
+
+  // JSON-LD: ItemList for top active traders
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: '거래 빈도 TOP 10 미국 의원 (최근 30일)',
+    description: '최근 30일간 가장 활발하게 주식을 거래한 미국 의회 의원 순위',
+    url: absoluteUrl('/rankings'),
+    itemListElement: activeTraders.slice(0, 10).map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: p.politicianNameKr ?? p.politicianNameEn ?? '',
+      url: p.politicianSlug ? absoluteUrl(`/politicians/${p.politicianSlug}`) : absoluteUrl('/rankings'),
+    })),
+  };
+
   // Compute party buy/sell totals for the ratio display
   const partyMap: Record<string, { buys: number; sells: number }> = {};
   for (const row of partyRatio) {
@@ -43,9 +81,17 @@ export default async function RankingsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
       <section>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">랭킹</h1>
-        <p className="mt-1 text-sm text-zinc-500">최근 30일 기준</p>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">미국 의원 주식 거래 랭킹</h1>
+        <p className="mt-1 text-sm text-zinc-500">최근 30일 기준 — 거래 빈도, 매수 금액, 가장 많이 거래된 종목</p>
       </section>
 
       {/* Party buy/sell ratio */}

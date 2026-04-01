@@ -12,12 +12,17 @@ export async function GET(_req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
 
-  const rows = await db
-    .select()
-    .from(alerts)
-    .where(and(eq(alerts.userId, session.userId), eq(alerts.isActive, true)));
+  try {
+    const rows = await db
+      .select()
+      .from(alerts)
+      .where(and(eq(alerts.userId, session.userId), eq(alerts.isActive, true)));
 
-  return NextResponse.json(rows);
+    return NextResponse.json(rows);
+  } catch (err) {
+    console.error('[Alerts] GET error:', err);
+    return NextResponse.json({ error: '알림 목록을 불러오지 못했습니다.' }, { status: 500 });
+  }
 }
 
 // POST /api/alerts — create a new alert
@@ -53,14 +58,19 @@ export async function POST(req: NextRequest) {
     ? String(targetId).toUpperCase().trim()
     : targetId ?? null;
 
-  const created = await db.insert(alerts).values({
-    userId: session.userId,
-    alertType,
-    targetId: normalizedTargetId,
-    channel,
-    channelConfig: configJson,
-    isActive: true,
-  }).returning();
+  try {
+    const created = await db.insert(alerts).values({
+      userId: session.userId,
+      alertType,
+      targetId: normalizedTargetId,
+      channel,
+      channelConfig: configJson,
+      isActive: true,
+    }).returning();
 
-  return NextResponse.json(created[0], { status: 201 });
+    return NextResponse.json(created[0], { status: 201 });
+  } catch (err) {
+    console.error('[Alerts] POST error:', err);
+    return NextResponse.json({ error: '알림 생성에 실패했습니다.' }, { status: 500 });
+  }
 }

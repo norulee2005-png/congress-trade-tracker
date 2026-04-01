@@ -16,7 +16,23 @@ export interface TradeFilters {
   offset?: number;
 }
 
-export async function searchTrades(filters: TradeFilters) {
+export type TradeSearchResult = {
+  id: string;
+  stockTicker: string;
+  stockName: string | null;
+  tradeType: string;
+  amountRange: string | null;
+  tradeDate: string | null;
+  disclosureDate: string;
+  politicianSlug: string | null;
+  politicianNameEn: string | null;
+  politicianNameKr: string | null;
+  politicianParty: string | null;
+  politicianChamber: string | null;
+  stockSector: string | null;
+};
+
+export async function searchTrades(filters: TradeFilters): Promise<TradeSearchResult[]> {
   const {
     q,
     party,
@@ -83,7 +99,7 @@ export async function searchTrades(filters: TradeFilters) {
 }
 
 // Return all unique sectors from stocks table (for filter dropdown)
-export async function getAllSectors() {
+export async function getAllSectors(): Promise<string[]> {
   const rows = await db
     .selectDistinct({ sector: stocks.sector })
     .from(stocks)

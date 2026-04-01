@@ -82,6 +82,7 @@ export default function AlertsManager({
                 </div>
                 <button
                   onClick={() => handleDelete(alert.id)}
+                  aria-label={`알림 삭제: ${ALERT_TYPE_LABELS[alert.alertType]}${alert.targetId ? ` ${alert.targetId}` : ''}`}
                   className="text-xs text-red-500 hover:text-red-700"
                 >
                   삭제
@@ -102,8 +103,9 @@ export default function AlertsManager({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">알림 유형</label>
+              <label htmlFor="am-alert-type" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">알림 유형</label>
               <select
+                id="am-alert-type"
                 value={alertType}
                 onChange={(e) => setAlertType(e.target.value as typeof alertType)}
                 className="mt-1 w-full rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
@@ -117,8 +119,9 @@ export default function AlertsManager({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">채널</label>
+              <label htmlFor="am-channel" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">채널</label>
               <select
+                id="am-channel"
                 value={channel}
                 onChange={(e) => setChannel(e.target.value as typeof channel)}
                 className="mt-1 w-full rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
@@ -131,10 +134,11 @@ export default function AlertsManager({
 
           {alertType !== 'large_trade' && (
             <div>
-              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              <label htmlFor="am-target-id" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
                 {alertType === 'politician' ? '의원 슬러그 (예: nancy-pelosi)' : '종목 티커 (예: NVDA)'}
               </label>
               <input
+                id="am-target-id"
                 type="text"
                 required
                 value={targetId}
@@ -146,8 +150,9 @@ export default function AlertsManager({
 
           {channel === 'discord' && (
             <div>
-              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Discord 웹훅 URL</label>
+              <label htmlFor="am-webhook-url" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Discord 웹훅 URL</label>
               <input
+                id="am-webhook-url"
                 type="url"
                 required
                 value={webhookUrl}

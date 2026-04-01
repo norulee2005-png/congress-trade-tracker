@@ -14,15 +14,20 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const result = await db
-    .update(alerts)
-    .set({ isActive: false, updatedAt: new Date() })
-    .where(and(eq(alerts.id, id), eq(alerts.userId, session.userId)))
-    .returning({ id: alerts.id });
+  try {
+    const result = await db
+      .update(alerts)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(and(eq(alerts.id, id), eq(alerts.userId, session.userId)))
+      .returning({ id: alerts.id });
 
-  if (result.length === 0) {
-    return NextResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
+    if (result.length === 0) {
+      return NextResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[Alerts] DELETE error:', err);
+    return NextResponse.json({ error: '알림 삭제에 실패했습니다.' }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }

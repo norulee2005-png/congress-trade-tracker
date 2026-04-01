@@ -93,11 +93,24 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
     url: absoluteUrl(`/stocks/${upper}`),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '대시보드', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: upper, item: absoluteUrl(`/stocks/${upper}`) },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       {/* Breadcrumb */}
       <nav className="text-sm text-zinc-500">
@@ -149,6 +162,12 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
           )}
         </div>
       </section>
+
+      {/* SEO intro — keyword-rich context for crawlers */}
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        {stock?.nameKr ?? stock?.nameEn ?? upper}({upper}) 종목에 대한 미국 의회 의원들의
+        STOCK Act 공시 주식 거래 현황입니다. 매수·매도 의원 목록과 월별 트렌드를 한국어로 확인하세요.
+      </p>
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
