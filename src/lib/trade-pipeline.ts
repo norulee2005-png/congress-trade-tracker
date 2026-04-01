@@ -222,8 +222,8 @@ async function upsertTrades(normalizedTrades: NormalizedTrade[]): Promise<number
   for (let i = 0; i < tradeRows.length; i += CHUNK) {
     const chunk = tradeRows.slice(i, i + CHUNK);
     try {
-      await db.insert(trades).values(chunk).onConflictDoNothing();
-      inserted += chunk.length;
+      const result = await db.insert(trades).values(chunk).onConflictDoNothing().returning({ id: trades.id });
+      inserted += result.length;
     } catch (err) {
       log.error('Bulk trade insert failed', err, { chunkStart: i, chunkSize: chunk.length });
     }
@@ -280,9 +280,14 @@ export async function runHousePipeline(year: number): Promise<number> {
   // C5: Process in concurrent batches of 8
   const CONCURRENCY = 8;
   const tasks = newFilings.map((filing) => async () => {
-    const transactions = await parseHouseFilingXml(filing);
-    const normalized = normalizeHouseTransactions(transactions) as NormalizedTrade[];
-    return upsertTrades(normalized);
+    try {
+      const transactions = await parseHouseFilingXml(filing);
+      const normalized = normalizeHouseTransactions(transactions) as NormalizedTrade[];
+      return upsertTrades(normalized);
+    } catch (err) {
+      log.error('House filing task failed', err, { filingId: filing.filingId });
+      return 0;
+    }
   });
 
   const counts = await pLimit(tasks, CONCURRENCY);
@@ -347,7 +352,8 @@ export async function runFullPipeline(): Promise<PipelineResult> {
     log.info('Updating stock prices', { tickerCount: tickers.length });
     await updateStockPricesInDb(tickers);
 
-    // Backfill priceAtDisclosure for new trades that lack it (use current price as approximation)
+    // Backfill priceAtDisclosure for new trades that lack it
+    // NOTE: Uses current price as approximation — accuracy improves as prices are captured closer to disclosure date
     await db.execute(sql`
       UPDATE trades t
       SET price_at_disclosure = s.current_price,

@@ -48,21 +48,31 @@ export default function AlertsManager({
   async function addAlert(type: typeof alertType, id: string) {
     setSaving(true);
     setError('');
-    const body: Record<string, unknown> = { alertType: type, channel: 'email' };
-    if (type !== 'large_trade') body.targetId = id;
+    try {
+      const body: Record<string, unknown> = { alertType: type, channel: 'email' };
+      if (type !== 'large_trade') body.targetId = id;
 
-    const res = await fetch('/api/alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? '알림 추가에 실패했습니다.');
-    } else {
-      setAlertList((prev) => [...prev, data]);
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? '알림 추가에 실패했습니다.');
+      } else {
+        // Dedup by composite key before adding
+        setAlertList((prev) => {
+          const key = `${data.alertType}|${data.targetId}|${data.channel}`;
+          const exists = prev.some((a) => `${a.alertType}|${a.targetId}|${a.channel}` === key);
+          return exists ? prev : [...prev, data];
+        });
+      }
+    } catch {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -74,20 +84,29 @@ export default function AlertsManager({
     if (alertType !== 'large_trade') body.targetId = targetId.trim();
     if (channel === 'discord') body.channelConfig = { webhookUrl };
 
-    const res = await fetch('/api/alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? '알림 추가에 실패했습니다.');
-    } else {
-      setAlertList((prev) => [...prev, data]);
-      setTargetId('');
-      setWebhookUrl('');
+    try {
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? '알림 추가에 실패했습니다.');
+      } else {
+        setAlertList((prev) => {
+          const key = `${data.alertType}|${data.targetId}|${data.channel}`;
+          const exists = prev.some((a) => `${a.alertType}|${a.targetId}|${a.channel}` === key);
+          return exists ? prev : [...prev, data];
+        });
+        setTargetId('');
+        setWebhookUrl('');
+      }
+    } catch {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleDelete(id: string) {
@@ -95,7 +114,8 @@ export default function AlertsManager({
     if (res.ok) setAlertList((prev) => prev.filter((a) => a.id !== id));
   }
 
-  const activeTargetIds = new Set(alertList.map((a) => a.targetId));
+  // Composite key dedup: alertType|targetId|channel
+  const activeKeys = new Set(alertList.map((a) => `${a.alertType}|${a.targetId}|${a.channel}`));
 
   return (
     <div className="space-y-8">
@@ -105,7 +125,7 @@ export default function AlertsManager({
         <p className="mb-3 text-xs text-zinc-500">자주 거래하는 의원을 한 번에 추가하세요.</p>
         <div className="flex flex-wrap gap-2">
           {QUICK_POLITICIANS.map(({ slug, label }) => {
-            const active = activeTargetIds.has(slug);
+            const active = activeKeys.has(`politician|${slug}|email`);
             return (
               <button
                 key={slug}
@@ -131,7 +151,7 @@ export default function AlertsManager({
         <p className="mb-3 text-xs text-zinc-500">의원들이 자주 거래하는 종목을 추가하세요.</p>
         <div className="flex flex-wrap gap-2">
           {QUICK_STOCKS.map(({ ticker, label }) => {
-            const active = activeTargetIds.has(ticker);
+            const active = activeKeys.has(`stock|${ticker}|email`);
             return (
               <button
                 key={ticker}

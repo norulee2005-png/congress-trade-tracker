@@ -9,6 +9,7 @@ import { inArray } from 'drizzle-orm';
 const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const FMP_BATCH_SIZE = 50;
+const MAX_CACHE_SIZE = 500;
 
 // Module-level price cache: ticker → { price, fetchedAt }
 const priceCache = new Map<string, { price: number; fetchedAt: number }>();
@@ -24,7 +25,16 @@ function getCached(ticker: string): number | null {
 }
 
 function setCache(ticker: string, price: number) {
+  // Evict oldest entries when cache exceeds max size
+  if (priceCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = priceCache.keys().next().value;
+    if (firstKey) priceCache.delete(firstKey);
+  }
   priceCache.set(ticker, { price, fetchedAt: Date.now() });
+}
+
+function redactUrl(url: string): string {
+  return url.replace(/apikey=[^&]+/, 'apikey=***');
 }
 
 // FMP /quote/{tickers} — supports comma-separated batch up to 50
@@ -35,15 +45,18 @@ async function fetchFmpBatch(tickers: string[], apiKey: string): Promise<Map<str
     const url = `${FMP_BASE}/quote/${encodeURIComponent(batch)}?apikey=${apiKey}`;
     try {
       const res = await fetch(url);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.warn(`[PriceFetcher] FMP batch failed: HTTP ${res.status} for ${redactUrl(url)}`);
+        continue;
+      }
       const data: Array<{ symbol: string; price: number }> = await res.json();
       for (const item of data) {
         if (item.symbol && typeof item.price === 'number') {
           result.set(item.symbol.toUpperCase(), item.price);
         }
       }
-    } catch {
-      // continue to next batch
+    } catch (err) {
+      console.warn(`[PriceFetcher] FMP batch error:`, err instanceof Error ? err.message : err);
     }
   }
   return result;
@@ -122,11 +135,15 @@ export async function updateStockPricesInDb(tickers: string[]): Promise<void> {
 
   const now = new Date();
 
-  // Batch update each ticker
+  // Batch update each ticker — isolate errors per ticker
   for (const [ticker, price] of prices) {
-    await db
-      .update(stocks)
-      .set({ currentPrice: String(price), priceUpdatedAt: now, updatedAt: now })
-      .where(inArray(stocks.ticker, [ticker]));
+    try {
+      await db
+        .update(stocks)
+        .set({ currentPrice: String(price), priceUpdatedAt: now, updatedAt: now })
+        .where(inArray(stocks.ticker, [ticker]));
+    } catch (err) {
+      console.warn(`[PriceFetcher] DB update failed for ${ticker}:`, err instanceof Error ? err.message : err);
+    }
   }
 }

@@ -115,7 +115,7 @@ export async function getPoliticianAvgReturn(
   );
 
   if (valid.length === 0) {
-    return { politicianId, avgReturnPct: null, tradeCount: rows.length };
+    return { politicianId, avgReturnPct: null, tradeCount: valid.length };
   }
 
   let totalWeight = 0;
@@ -178,8 +178,8 @@ export async function getTopReturnPoliticians(
       politicians.party,
       politicians.chamber,
     )
-    // Only include politicians with >= 3 qualifying buy trades
-    .having(sql`COUNT(${trades.id}) >= 3`)
+    // Only include politicians with >= 3 qualifying buy trades (with valid prices)
+    .having(sql`COUNT(CASE WHEN ${trades.priceAtDisclosure} IS NOT NULL AND ${stocks.currentPrice} IS NOT NULL AND ${trades.priceAtDisclosure}::numeric > 0 THEN 1 END) >= 3`)
     .orderBy(desc(sql`
       AVG(
         CASE

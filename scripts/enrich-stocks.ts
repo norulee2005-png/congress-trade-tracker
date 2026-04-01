@@ -25,7 +25,7 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Respo
       const res = await fetch(url);
       if (res.ok) return res;
       if (res.status === 429 || res.status >= 500) {
-        console.warn(`[Enrich-Stocks] HTTP ${res.status} attempt ${attempt}/${retries}: ${url}`);
+        console.warn(`[Enrich-Stocks] HTTP ${res.status} attempt ${attempt}/${retries} for ticker request`);
         if (attempt < retries) await sleep(RETRY_DELAY_MS * attempt);
         continue;
       }
@@ -35,7 +35,7 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Respo
       if (attempt < retries) await sleep(RETRY_DELAY_MS * attempt);
     }
   }
-  throw new Error(`[Enrich-Stocks] All ${retries} retries failed for ${url}`);
+  throw new Error(`[Enrich-Stocks] All ${retries} retries failed for request`);
 }
 
 interface FmpProfile {
@@ -100,17 +100,22 @@ async function enrichStocks() {
         continue;
       }
 
-      await db
-        .update(stocks)
-        .set({
-          ...(profile.sector ? { sector: profile.sector } : {}),
-          ...(profile.industry ? { industry: profile.industry } : {}),
-          updatedAt: new Date(),
-        })
-        .where(eq(stocks.id, stock.id));
+      try {
+        await db
+          .update(stocks)
+          .set({
+            ...(profile.sector ? { sector: profile.sector } : {}),
+            ...(profile.industry ? { industry: profile.industry } : {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(stocks.id, stock.id));
 
-      console.log(`[Enrich-Stocks] Updated ${stock.ticker} -> sector: ${profile.sector}, industry: ${profile.industry}`);
-      enriched++;
+        console.log(`[Enrich-Stocks] Updated ${stock.ticker} -> sector: ${profile.sector}, industry: ${profile.industry}`);
+        enriched++;
+      } catch (err) {
+        console.warn(`[Enrich-Stocks] DB update failed for ${stock.ticker}:`, err);
+        failed++;
+      }
 
       await sleep(REQUEST_DELAY_MS);
     }

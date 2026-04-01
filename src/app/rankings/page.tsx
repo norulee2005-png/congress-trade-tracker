@@ -50,13 +50,18 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function RankingsPage() {
-  const [activeTraders, topStocks, partyRatio, topBuyers, topReturns] = await Promise.all([
+  const results = await Promise.allSettled([
     getMostActiveTraders(30, 10),
     getMostTradedStocks(20),
     getPartyBuySellRatio(),
     getTopBuyersByAmount(10),
     getTopReturnPoliticians(365, 10),
   ]);
+  const activeTraders = results[0].status === 'fulfilled' ? results[0].value : [];
+  const topStocks = results[1].status === 'fulfilled' ? results[1].value : [];
+  const partyRatio = results[2].status === 'fulfilled' ? results[2].value : [];
+  const topBuyers = results[3].status === 'fulfilled' ? results[3].value : [];
+  const topReturns = results[4].status === 'fulfilled' ? results[4].value : [];
 
   // JSON-LD: BreadcrumbList for this page
   const breadcrumbJsonLd = {
@@ -132,6 +137,9 @@ export default async function RankingsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">정당별 매수/매도 비율</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {Object.keys(partyMap).length === 0 && (
+            <p className="col-span-full px-4 py-8 text-center text-sm text-zinc-400">정당별 데이터 없음</p>
+          )}
           {Object.entries(partyMap).map(([party, { buys, sells }]) => {
             const total = buys + sells;
             const buyPct = total > 0 ? Math.round((buys / total) * 100) : 50;

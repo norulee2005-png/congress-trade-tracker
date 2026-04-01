@@ -20,11 +20,12 @@ function formatAmountShort(val: number): string {
   return `$${val}`;
 }
 
-// Return % map keyed by nameEn for OG overlay
+// Return % map keyed by slug for OG overlay (stable identifier)
 type ReturnMap = Map<string, number>;
 
 export async function GET() {
   let top5: Array<{
+    politicianSlug: string | null;
     politicianNameKr: string | null;
     politicianNameEn: string;
     politicianParty: string | null;
@@ -36,9 +37,10 @@ export async function GET() {
   try {
     const [rows, returnRows] = await Promise.all([
       getTopBuyersByAmount(5),
-      getTopReturnPoliticians(365, 20),
+      getTopReturnPoliticians(365, 50),
     ]);
     top5 = rows.map((r) => ({
+      politicianSlug: r.politicianSlug,
       politicianNameKr: r.politicianNameKr,
       politicianNameEn: r.politicianNameEn ?? '',
       politicianParty: r.politicianParty,
@@ -46,7 +48,7 @@ export async function GET() {
       tradeCount: Number(r.tradeCount),
     }));
     for (const r of returnRows) {
-      if (r.politicianNameEn) returnMap.set(r.politicianNameEn, r.avgReturnPct);
+      if (r.politicianSlug) returnMap.set(r.politicianSlug, r.avgReturnPct);
     }
   } catch {
     // fallback — render placeholder card
@@ -106,7 +108,7 @@ export async function GET() {
               const name = p.politicianNameKr ?? p.politicianNameEn;
               const amount = Number(p.totalAmountMin);
               const pColor = partyColor(p.politicianParty);
-              const retPct = returnMap.get(p.politicianNameEn) ?? null;
+              const retPct = (p.politicianSlug ? returnMap.get(p.politicianSlug) : null) ?? null;
               const retColor = retPct === null ? '#64748b' : retPct >= 0 ? '#22c55e' : '#ef4444';
               return (
                 <div

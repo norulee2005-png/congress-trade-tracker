@@ -72,11 +72,14 @@ async function searchBioguide(firstName: string, lastName: string): Promise<Biog
     const results: BioguideResult[] = data?.results ?? [];
     if (results.length === 0) return null;
     // Best match: exact last name, first name
-    return results.find(
+    const exact = results.find(
       (r) =>
         r.lastName.toLowerCase() === lastName.toLowerCase() &&
         r.firstName.toLowerCase().startsWith(firstName.toLowerCase().split(' ')[0]),
-    ) ?? results[0];
+    );
+    // Skip ambiguous matches — only use exact match, never fall back to first result
+    if (!exact && results.length > 1) return null;
+    return exact ?? (results.length === 1 ? results[0] : null);
   } catch (err) {
     console.warn(`[Enrich] Error searching bioguide for ${firstName} ${lastName}:`, err);
     return null;
@@ -132,20 +135,25 @@ async function enrichPoliticians() {
 
     const nameKr = getKoreanName(politician.slug) ?? politician.nameKr ?? undefined;
 
-    await db
-      .update(politicians)
-      .set({
-        bioguideId,
-        photoUrl,
-        ...(partyFromApi && !politician.party ? { party: partyFromApi } : {}),
-        ...(stateFromApi && !politician.state ? { state: stateFromApi } : {}),
-        ...(nameKr ? { nameKr } : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(politicians.id, politician.id));
+    try {
+      await db
+        .update(politicians)
+        .set({
+          bioguideId,
+          photoUrl,
+          ...(partyFromApi && !politician.party ? { party: partyFromApi } : {}),
+          ...(stateFromApi && !politician.state ? { state: stateFromApi } : {}),
+          ...(nameKr ? { nameKr } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(politicians.id, politician.id));
 
-    console.log(`[Enrich] Updated ${politician.nameEn} -> bioguideId: ${bioguideId}`);
-    enriched++;
+      console.log(`[Enrich] Updated ${politician.nameEn} -> bioguideId: ${bioguideId}`);
+      enriched++;
+    } catch (err) {
+      console.warn(`[Enrich] DB update failed for ${politician.nameEn}:`, err);
+      failed++;
+    }
 
     // Polite delay between API calls
     await sleep(500);

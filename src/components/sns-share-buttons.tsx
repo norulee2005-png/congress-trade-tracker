@@ -33,10 +33,21 @@ interface SnsShareButtonsProps {
   imageUrl?: string;
 }
 
+function isValidHttpUrl(str: string): boolean {
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function SnsShareButtons({ url, text, imageUrl }: SnsShareButtonsProps) {
-  const encodedUrl = encodeURIComponent(url);
+  const safeUrl = isValidHttpUrl(url) ? url : `${typeof window !== 'undefined' ? window.location.origin : ''}${url}`;
+  const safeImage = imageUrl && isValidHttpUrl(imageUrl) ? imageUrl : undefined;
+  const encodedUrl = encodeURIComponent(safeUrl);
   const encodedText = encodeURIComponent(text);
-  const ogImage = imageUrl ?? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/og/top5`;
+  const ogImage = safeImage ?? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/og/top5`;
 
   const shareX = () => {
     window.open(
@@ -55,7 +66,7 @@ export default function SnsShareButtons({ url, text, imageUrl }: SnsShareButtons
           title: text,
           description: '의회 주식 추적기 — 미국 의원 주식 거래 한국어 분석',
           imageUrl: ogImage,
-          link: { mobileWebUrl: url, webUrl: url },
+          link: { mobileWebUrl: safeUrl, webUrl: safeUrl },
         },
       });
       return;
