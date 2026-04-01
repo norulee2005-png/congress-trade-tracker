@@ -32,12 +32,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  alternates: {
-    languages: {
-      'ko': SITE_URL,
-      'x-default': SITE_URL,
-    },
-  },
 };
 
 const orgJsonLd = {
@@ -73,6 +67,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
+        {/* hreflang: Korean-only site; x-default for global Korean-language searchers */}
+        <link rel="alternate" hrefLang="ko" href={SITE_URL} />
+        <link rel="alternate" hrefLang="x-default" href={SITE_URL} />
       </head>
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
         {/* Blocking script: apply dark class before first paint to prevent FOUC */}
