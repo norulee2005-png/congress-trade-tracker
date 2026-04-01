@@ -9,8 +9,9 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 21600; // 6 hours
 
 export const metadata: Metadata = {
-  title: '이번 달 TOP 5 매수 의원',
-  description: '이번 달 미국 의회에서 가장 많이 매수한 의원 TOP 5 — STOCK Act 공시 기반 한국어 분석',
+  title: '미국 의원 주식 매수 TOP 5 — 이번 달 거래 순위',
+  description: '이번 달 미국 의회에서 가장 많이 매수한 의원 TOP 5 — STOCK Act 공시 기반 한국어 분석. 의원별 총 매수 금액, 거래 건수 확인.',
+  keywords: ['미국 의원 주식 매수', '의원 주식 TOP5', '의회 주식 순위', 'STOCK Act 매수'],
   alternates: {
     canonical: '/top5',
   },
@@ -64,6 +65,7 @@ export default async function Top5Page() {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: `${monthLabel} TOP 5 매수 의원`,
+    description: `${monthLabel} 미국 의회에서 가장 많이 주식을 매수한 의원 TOP 5 — STOCK Act 공시 기반`,
     url: absoluteUrl('/top5'),
     numberOfItems: top5.length,
     itemListElement: top5.map((p, i) => ({
@@ -74,11 +76,24 @@ export default async function Top5Page() {
     })),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '대시보드', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: 'TOP 5 매수 의원', item: absoluteUrl('/top5') },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       {/* Header */}
