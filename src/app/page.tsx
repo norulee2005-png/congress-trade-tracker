@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getRecentTrades, getTradeStats, getTopBoughtStocks, getKrwRate } from '@/lib/queries/dashboard-queries';
-import { SITE_URL } from '@/lib/site-url';
+import { absoluteUrl } from '@/lib/site-url';
 import {
   formatTradeType,
   tradeTypeBadgeClass,
@@ -57,25 +57,20 @@ export default async function DashboardPage() {
   const s7 = statsSummary(stats7d);
   const s30 = statsSummary(stats30d);
 
-  const websiteJsonLd = {
+  // BreadcrumbList for homepage (home is the root — single item)
+  const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: '의회 주식 추적기',
-    url: SITE_URL,
-    description: '미국 STOCK Act 공시 데이터를 한국어로 — 의원 주식 거래를 실시간 추적',
-    inLanguage: 'ko',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
-      'query-input': 'required name=search_term_string',
-    },
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '대시보드', item: absoluteUrl('/') },
+    ],
   };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-10">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       {/* Header */}
       <section>
