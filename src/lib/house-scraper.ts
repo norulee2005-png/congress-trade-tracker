@@ -5,8 +5,9 @@ import { createLogger } from './structured-logger';
 
 const log = createLogger('house-scraper');
 
-// House Financial Disclosures search API
-const HOUSE_FD_BASE = 'https://disclosures.house.gov';
+// House Financial Disclosures — migrated to disclosures-clerk.house.gov
+// Old: disclosures.house.gov (now redirects to lobbying disclosure site)
+const HOUSE_FD_BASE = 'https://disclosures-clerk.house.gov';
 const HOUSE_FD_SEARCH = `${HOUSE_FD_BASE}/FinancialDisclosure/Search`;
 const HOUSE_FD_FILING = `${HOUSE_FD_BASE}/FinancialDisclosure/ViewMemberBrowseAssets`;
 
@@ -27,8 +28,8 @@ export interface RawHouseTransaction {
  * House FD publishes an annual XML index at a predictable URL.
  */
 export async function fetchHouseFilingIndex(year: number): Promise<RawHouseTransaction[]> {
-  // House publishes XML index files for each year
-  const indexUrl = `${HOUSE_FD_BASE}/assets/financialdisclosure/docs/${year}FD.xml`;
+  // House publishes XML index files for each year (new path as of 2026)
+  const indexUrl = `${HOUSE_FD_BASE}/public_disc/financial-pdfs/${year}FD.xml`;
 
   try {
     const response = await axios.get(indexUrl, {
@@ -39,7 +40,8 @@ export async function fetchHouseFilingIndex(year: number): Promise<RawHouseTrans
     const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
     const parsed = await parser.parseStringPromise(response.data);
 
-    const members = parsed?.NewDataSet?.Member;
+    // Root element changed from NewDataSet to FinancialDisclosure after migration
+    const members = parsed?.FinancialDisclosure?.Member ?? parsed?.NewDataSet?.Member;
     if (!members) return [];
 
     const items = Array.isArray(members) ? members : [members];
@@ -50,7 +52,7 @@ export async function fetchHouseFilingIndex(year: number): Promise<RawHouseTrans
         m.FilingType === 'P' || (m.FilingType ?? '').toLowerCase().includes('periodic')
       )
       .map((m: Record<string, string>) => ({
-        filingId: String(m.FilingID ?? ''),
+        filingId: String(m.DocID ?? m.FilingID ?? ''),
         prefix: String(m.Prefix ?? ''),
         lastName: String(m.Last ?? ''),
         firstName: String(m.First ?? ''),
@@ -87,7 +89,9 @@ export interface ParsedHouseTrade {
 export async function parseHouseFilingXml(filing: RawHouseTransaction): Promise<ParsedHouseTrade[]> {
   if (!filing.url) return [];
 
-  const fileUrl = `${HOUSE_FD_BASE}/ptr-pdfs/${filing.filingYear}/${filing.url}.xml`;
+  // Individual PTR XML files are at /public_disc/ptr-pdfs/{year}/{docId}.xml
+  // Note: House moved to PDF-only for individual filings; XMLs return 404 and are handled below
+  const fileUrl = `${HOUSE_FD_BASE}/public_disc/ptr-pdfs/${filing.filingYear}/${filing.url}.xml`;
 
   try {
     await sleep(300); // Polite rate limit between XML fetches
