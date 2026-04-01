@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 const CATEGORY_LABELS: Record<string, string> = {
   announcement: '공지',
   education: '교육',
+  analysis: '분석',
 };
 
 export default function BlogIndexPage() {
