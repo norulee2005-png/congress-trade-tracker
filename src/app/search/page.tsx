@@ -15,18 +15,29 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '검색',
-  description: '의원 이름, 종목, 정당, 거래 유형으로 미국 의회 주식 거래를 검색하세요',
-  alternates: {
-    canonical: '/search',
-  },
-};
-
 const PAGE_SIZE = 50;
 
 interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+// Filter param keys that trigger noindex when present
+const FILTER_KEYS = ['q', 'party', 'chamber', 'tradeType', 'sector', 'dateFrom', 'dateTo', 'amountMin', 'amountMax'];
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const sp = await searchParams;
+  const hasFilters = FILTER_KEYS.some((k) => {
+    const v = sp[k];
+    return v != null && v !== '';
+  });
+
+  return {
+    title: '검색',
+    description: '의원 이름, 종목, 정당, 거래 유형으로 미국 의회 주식 거래를 검색하세요',
+    alternates: { canonical: '/search' },
+    // Noindex filtered/paginated search results to avoid duplicate content
+    ...(hasFilters && { robots: { index: false, follow: true } }),
+  };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

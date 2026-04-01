@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
 
   const partyColor = party === '민주당' ? '#3b82f6' : party === '공화당' ? '#ef4444' : '#71717a';
 
-  return new ImageResponse(
+  const imgResponse = new ImageResponse(
     (
       <div
         style={{
@@ -118,4 +118,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     ),
     { width: 1200, height: 630 },
   );
+  imgResponse.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+  return imgResponse;
 }

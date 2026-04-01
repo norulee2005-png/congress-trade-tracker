@@ -6,8 +6,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        // Disallow user-specific and API routes
+        allow: ['/'],
+        // Disallow user-specific, private, and API routes (OG image endpoints are accessible
+        // to social media crawlers via og:image tags but don't need search-bot indexing)
         disallow: ['/account', '/alerts', '/login', '/api/'],
       },
     ],

@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ ticker:
 
   const buyRatio = tradeCount > 0 ? Math.round((buyCount / tradeCount) * 100) : 0;
 
-  return new ImageResponse(
+  const imgResponse = new ImageResponse(
     (
       <div
         style={{
@@ -162,4 +162,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ ticker:
     ),
     { width: 1200, height: 630 },
   );
+  imgResponse.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+  return imgResponse;
 }

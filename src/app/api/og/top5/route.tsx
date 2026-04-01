@@ -44,7 +44,7 @@ export async function GET() {
   const now = new Date();
   const monthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
 
-  return new ImageResponse(
+  const imgResponse = new ImageResponse(
     (
       <div
         style={{
@@ -186,4 +186,6 @@ export async function GET() {
     ),
     { width: 1200, height: 630 },
   );
+  imgResponse.headers.set('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
+  return imgResponse;
 }
