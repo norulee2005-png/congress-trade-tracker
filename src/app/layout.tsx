@@ -80,18 +80,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/<\/script>/gi, '<\\/script>') }}
         />
-        {/* Kakao JS SDK — initialized via onLoad to avoid blocking render */}
+        {/* Kakao JS SDK — loaded after page is interactive */}
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
           integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4"
           crossOrigin="anonymous"
-          strategy="lazyOnload"
-          onLoad={`
-            if (window.Kakao && !window.Kakao.isInitialized()) {
-              window.Kakao.init('${process.env.NEXT_PUBLIC_KAKAO_APP_KEY ?? ''}');
-            }
-          `}
+          strategy="afterInteractive"
+          id="kakao-sdk"
         />
+        {/* Initialize Kakao SDK after it loads */}
+        <Script id="kakao-init" strategy="afterInteractive">{`
+          (function() {
+            var key = '${process.env.NEXT_PUBLIC_KAKAO_APP_KEY ?? ''}';
+            if (!key) return;
+            function tryInit() {
+              if (window.Kakao) {
+                if (!window.Kakao.isInitialized()) window.Kakao.init(key);
+              } else {
+                setTimeout(tryInit, 100);
+              }
+            }
+            tryInit();
+          })();
+        `}</Script>
         <SiteNav />
         <main id="main-content" className="flex-1">{children}</main>
         <footer className="border-t border-zinc-200 bg-white py-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">

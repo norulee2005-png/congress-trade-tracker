@@ -1,18 +1,42 @@
 'use client';
 
 // SNS share buttons: X/Twitter, KakaoTalk, Naver Blog
-// KakaoTalk uses the Web Share API fallback when the SDK is unavailable.
+// KakaoTalk uses Kakao.Share.sendDefault() when SDK is available,
+// falls back to kakaotalk:// URL scheme on mobile, then story.kakao.com on desktop.
+
+declare global {
+  interface Window {
+    Kakao?: {
+      isInitialized: () => boolean;
+      init: (key: string) => void;
+      Share: {
+        sendDefault: (options: {
+          objectType: string;
+          content: {
+            title: string;
+            description: string;
+            imageUrl: string;
+            link: { mobileWebUrl: string; webUrl: string };
+          };
+        }) => void;
+      };
+    };
+  }
+}
 
 interface SnsShareButtonsProps {
   /** Full URL to share (should be absolute) */
   url: string;
   /** Short text for the share message */
   text: string;
+  /** Optional image URL for Kakao feed card (defaults to OG image) */
+  imageUrl?: string;
 }
 
-export default function SnsShareButtons({ url, text }: SnsShareButtonsProps) {
+export default function SnsShareButtons({ url, text, imageUrl }: SnsShareButtonsProps) {
   const encodedUrl = encodeURIComponent(url);
   const encodedText = encodeURIComponent(text);
+  const ogImage = imageUrl ?? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/og/top5`;
 
   const shareX = () => {
     window.open(
@@ -22,17 +46,29 @@ export default function SnsShareButtons({ url, text }: SnsShareButtonsProps) {
     );
   };
 
-  const shareKakao = async () => {
-    // KakaoTalk share: use Web Share API if available (mobile), fallback to KakaoTalk link URL
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: text, url });
-        return;
-      } catch {
-        // user cancelled or unsupported — fall through
-      }
+  const shareKakao = () => {
+    // Prefer Kakao JS SDK (best UX — native share dialog)
+    if (window.Kakao?.isInitialized()) {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: text,
+          description: '의회 주식 추적기 — 미국 의원 주식 거래 한국어 분석',
+          imageUrl: ogImage,
+          link: { mobileWebUrl: url, webUrl: url },
+        },
+      });
+      return;
     }
-    // Fallback: open KakaoTalk sharing page (works in desktop browsers too)
+
+    // Mobile fallback: KakaoTalk URL scheme
+    const ua = navigator.userAgent.toLowerCase();
+    if (/android|iphone|ipad/.test(ua)) {
+      window.location.href = `kakaotalk://share?url=${encodedUrl}&text=${encodedText}`;
+      return;
+    }
+
+    // Desktop fallback: Kakao Story share page
     window.open(
       `https://story.kakao.com/share?url=${encodedUrl}`,
       '_blank',

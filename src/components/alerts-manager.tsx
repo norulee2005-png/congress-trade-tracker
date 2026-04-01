@@ -15,6 +15,21 @@ const CHANNEL_LABELS: Record<string, string> = {
   discord: 'Discord',
 };
 
+// Popular politicians and stocks for quick-add buttons
+const QUICK_POLITICIANS = [
+  { slug: 'nancy-pelosi', label: '낸시 펠로시' },
+  { slug: 'dan-crenshaw', label: '댄 크렌쇼' },
+  { slug: 'michael-mccaul', label: '마이클 맥컬' },
+  { slug: 'tommy-tuberville', label: '토미 투버빌' },
+];
+
+const QUICK_STOCKS = [
+  { ticker: 'NVDA', label: 'NVDA' },
+  { ticker: 'TSLA', label: 'TSLA' },
+  { ticker: 'AAPL', label: 'AAPL' },
+  { ticker: 'MSFT', label: 'MSFT' },
+];
+
 export default function AlertsManager({
   initialAlerts,
   isPro,
@@ -29,6 +44,26 @@ export default function AlertsManager({
   const [webhookUrl, setWebhookUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  async function addAlert(type: typeof alertType, id: string) {
+    setSaving(true);
+    setError('');
+    const body: Record<string, unknown> = { alertType: type, channel: 'email' };
+    if (type !== 'large_trade') body.targetId = id;
+
+    const res = await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? '알림 추가에 실패했습니다.');
+    } else {
+      setAlertList((prev) => [...prev, data]);
+    }
+    setSaving(false);
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -60,8 +95,62 @@ export default function AlertsManager({
     if (res.ok) setAlertList((prev) => prev.filter((a) => a.id !== id));
   }
 
+  const activeTargetIds = new Set(alertList.map((a) => a.targetId));
+
   return (
     <div className="space-y-8">
+      {/* Quick-add popular politicians */}
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">인기 의원 빠른 알림 등록</h2>
+        <p className="mb-3 text-xs text-zinc-500">자주 거래하는 의원을 한 번에 추가하세요.</p>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_POLITICIANS.map(({ slug, label }) => {
+            const active = activeTargetIds.has(slug);
+            return (
+              <button
+                key={slug}
+                onClick={() => !active && addAlert('politician', slug)}
+                disabled={saving || active}
+                aria-label={`${label} 의원 알림 추가`}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  active
+                    ? 'border-blue-200 bg-blue-50 text-blue-400 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-500 cursor-default'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:border-blue-400 hover:text-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-500'
+                }`}
+              >
+                {active ? `${label} ✓` : `+ ${label}`}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Quick-add popular stocks */}
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">인기 종목 빠른 알림 등록</h2>
+        <p className="mb-3 text-xs text-zinc-500">의원들이 자주 거래하는 종목을 추가하세요.</p>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_STOCKS.map(({ ticker, label }) => {
+            const active = activeTargetIds.has(ticker);
+            return (
+              <button
+                key={ticker}
+                onClick={() => !active && addAlert('stock', ticker)}
+                disabled={saving || active}
+                aria-label={`${label} 종목 알림 추가`}
+                className={`rounded-full border px-3 py-1 font-mono text-xs font-medium transition-colors ${
+                  active
+                    ? 'border-green-200 bg-green-50 text-green-400 dark:border-green-800 dark:bg-green-950 dark:text-green-500 cursor-default'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:border-green-400 hover:text-green-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-green-500'
+                }`}
+              >
+                {active ? `${label} ✓` : `+ ${label}`}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Existing alerts */}
       <section>
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">

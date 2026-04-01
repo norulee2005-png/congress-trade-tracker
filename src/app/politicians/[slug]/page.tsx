@@ -151,11 +151,18 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
               </span>
             )}
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <SnsShareButtons
               url={absoluteUrl(`/politicians/${slug}`)}
               text={`${politician.nameKr ?? politician.nameEn} 의원 주식 거래 현황 — 의회 주식 추적기`}
             />
+            <Link
+              href={`/alerts?type=politician&id=${politician.slug}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900 transition-colors"
+            >
+              <BellIcon />
+              알림 설정
+            </Link>
           </div>
         </div>
       </section>
@@ -265,5 +272,14 @@ function StatCard({ label, value, colorClass }: { label: string; value: number; 
       <p className="text-xs text-zinc-500">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${colorClass}`}>{value.toLocaleString()}</p>
     </div>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
   );
 }
