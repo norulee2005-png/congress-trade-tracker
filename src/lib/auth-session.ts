@@ -2,8 +2,8 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
 const SESSION_COOKIE = 'session';
-const JWT_EXPIRY = '30d';
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days in seconds
+const JWT_EXPIRY = '7d';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
 
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;

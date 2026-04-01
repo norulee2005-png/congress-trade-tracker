@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { eq, and, gt, isNull } from 'drizzle-orm';
+import { eq, and, gt, isNull, lt } from 'drizzle-orm';
 import { db } from '@/db/db-client';
 import { users, magicLinks } from '@/db/schema';
 import { getResend } from './resend-client';
@@ -36,7 +36,14 @@ export async function consumeMagicLinkToken(token: string): Promise<string | nul
   if (rows.length === 0) return null;
 
   await db.update(magicLinks).set({ usedAt: now }).where(eq(magicLinks.id, rows[0].id));
+  // Fire-and-forget cleanup of expired tokens
+  pruneExpiredTokens().catch(() => undefined);
   return rows[0].userId;
+}
+
+export async function pruneExpiredTokens(): Promise<void> {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  await db.delete(magicLinks).where(lt(magicLinks.expiresAt, cutoff));
 }
 
 // Send the magic link email in Korean

@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_CHANNELS.includes(channel)) {
     return NextResponse.json({ error: '유효하지 않은 알림 채널입니다.' }, { status: 400 });
   }
-  if (channel === 'discord' && (!channelConfig?.webhookUrl || typeof channelConfig.webhookUrl !== 'string')) {
-    return NextResponse.json({ error: 'Discord 웹훅 URL이 필요합니다.' }, { status: 400 });
+  if (channel === 'discord') {
+    const url = channelConfig?.webhookUrl;
+    if (typeof url !== 'string' || !url.startsWith('https://discord.com/api/webhooks/')) {
+      return NextResponse.json({ error: 'Discord webhook URL must start with https://discord.com/api/webhooks/' }, { status: 400 });
+    }
   }
 
   // Pro gate: discord channel and large_trade alerts require Pro

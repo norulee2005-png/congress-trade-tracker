@@ -52,9 +52,10 @@ export async function GET() {
       checkedAt: new Date().toISOString(),
     }, { status: isHealthy ? 200 : 503 });
   } catch (err) {
+    console.error('[Health] pipeline check failed:', err);
     return NextResponse.json({
       status: 'error',
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: 'Pipeline health check failed',
       checkedAt: new Date().toISOString(),
     }, { status: 500 });
   }

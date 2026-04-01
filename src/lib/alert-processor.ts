@@ -1,10 +1,11 @@
-import { eq, and, gte, isNotNull } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { db } from '@/db/db-client';
-import { alerts, trades, politicians, users } from '@/db/schema';
+import { alerts, trades, politicians, users, alertDeliveries } from '@/db/schema';
 import { getResend } from './resend-client';
 
 const LARGE_TRADE_THRESHOLD = 100_000;
 const FROM_EMAIL = process.env.FROM_EMAIL ?? 'no-reply@congresstrade.kr';
+const DISCORD_WEBHOOK_PREFIX = 'https://discord.com/api/webhooks/';
 
 interface TradeWithPolitician {
   id: string;
@@ -65,6 +66,7 @@ function buildEmailHtml(trade: TradeWithPolitician, baseUrl: string): string {
     </div>`;
 }
 
+// Note: webhook URLs stored in plaintext in DB. Encrypt at app layer if DB compromise is a risk.
 async function sendDiscordWebhook(webhookUrl: string, trade: TradeWithPolitician, baseUrl: string) {
   const type = trade.tradeType === 'buy' ? '📈 매수' : trade.tradeType === 'sell' ? '📉 매도' : '🔄 교환';
   const amount = trade.amountMin ? `$${Number(trade.amountMin).toLocaleString()}+` : '미공개';
@@ -110,6 +112,14 @@ export async function processAlerts(since: Date): Promise<{ sent: number; errors
 
       if (!matches) continue;
 
+      // Dedup: skip if already delivered for this alert+trade combination
+      const existing = await db
+        .select({ id: alertDeliveries.id })
+        .from(alertDeliveries)
+        .where(and(eq(alertDeliveries.alertId, alert.id), eq(alertDeliveries.tradeId, trade.id)))
+        .limit(1);
+      if (existing.length > 0) continue;
+
       try {
         if (alert.channel === 'email') {
           await resend.emails.send({
@@ -119,9 +129,16 @@ export async function processAlerts(since: Date): Promise<{ sent: number; errors
             html: buildEmailHtml(trade, baseUrl),
           });
         } else if (alert.channel === 'discord' && alert.channelConfig) {
-          const config = JSON.parse(alert.channelConfig) as { webhookUrl: string };
-          await sendDiscordWebhook(config.webhookUrl, trade, baseUrl);
+          let webhookUrl: string | undefined;
+          try {
+            const config = JSON.parse(alert.channelConfig ?? '{}');
+            webhookUrl = typeof config.webhookUrl === 'string' ? config.webhookUrl : undefined;
+          } catch { webhookUrl = undefined; }
+          if (!webhookUrl || !webhookUrl.startsWith(DISCORD_WEBHOOK_PREFIX)) continue;
+          await sendDiscordWebhook(webhookUrl, trade, baseUrl);
         }
+
+        await db.insert(alertDeliveries).values({ alertId: alert.id, tradeId: trade.id }).onConflictDoNothing();
         sent++;
       } catch (err) {
         console.error(`[AlertProcessor] failed to send alert ${alert.id} for trade ${trade.id}:`, err);

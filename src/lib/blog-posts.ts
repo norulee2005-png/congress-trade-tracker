@@ -55,7 +55,7 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
     if (data.slug !== slug) continue;
 
-    const processed = await remark().use(html, { sanitize: false }).process(content);
+    const processed = await remark().use(html, { sanitize: true }).process(content);
     const contentHtml = processed.toString();
 
     return {
