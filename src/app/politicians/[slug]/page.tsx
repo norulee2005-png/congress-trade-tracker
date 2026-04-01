@@ -41,8 +41,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = `${name} 의원의 전체 주식 거래 내역, 포트폴리오 분석 — STOCK Act 공시 데이터 한국어 서비스`;
   const ogImageUrl = `/api/og/politician/${slug}`;
   return {
-    title: `${name} 의원 주식 거래`,
+    title: `${name} 의원 주식 거래 — STOCK Act 공시 내역`,
     description,
+    keywords: [`${name} 주식`, `${name} 주식 거래`, `${name} 투자`, `${politician.nameEn} stock trades`, 'STOCK Act 공시'],
     alternates: {
       canonical: `/politicians/${slug}`,
     },
@@ -81,6 +82,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
   const totalSells = Number(sellStats?.tradeCount ?? 0);
   const netPositionMin = Number(buyStats?.totalAmountMin ?? 0) - Number(sellStats?.totalAmountMin ?? 0);
 
+  const politicianName = politician.nameKr ?? politician.nameEn;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Person',
@@ -89,6 +91,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
     jobTitle: politician.chamber === 'senate' ? 'United States Senator' : 'United States Representative',
     memberOf: { '@type': 'Organization', name: politician.party ?? undefined },
     url: absoluteUrl(`/politicians/${politician.slug}`),
+    ...(politician.photoUrl ? { image: politician.photoUrl } : {}),
   };
 
   const breadcrumbJsonLd = {
@@ -96,7 +99,7 @@ export default async function PoliticianProfilePage({ params }: { params: Promis
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: '대시보드', item: absoluteUrl('/') },
-      { '@type': 'ListItem', position: 2, name: '의원 프로필', item: absoluteUrl(`/politicians/${politician.slug}`) },
+      { '@type': 'ListItem', position: 2, name: politicianName, item: absoluteUrl(`/politicians/${politician.slug}`) },
     ],
   };
 
