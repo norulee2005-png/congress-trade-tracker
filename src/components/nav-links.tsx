@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const NAV_LINKS = [
   { href: '/', label: '대시보드' },
@@ -25,7 +25,11 @@ export default function NavLinks() {
   const [open, setOpen] = useState(false);
 
   // Close mobile menu on route change
-  useEffect(() => { setOpen(false); }, [pathname]);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (open) setOpen(false);
+  }
 
   return (
     <>

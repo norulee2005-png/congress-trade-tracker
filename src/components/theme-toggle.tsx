@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type Theme = 'system' | 'dark' | 'light';
 
@@ -23,15 +23,11 @@ function applyTheme(theme: Theme) {
 const CYCLE: Theme[] = ['system', 'dark', 'light'];
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('system');
-
-  // Initialize from localStorage on mount
-  useEffect(() => {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored && CYCLE.includes(stored)) {
-      setTheme(stored);
-    }
-  }, []);
+    return stored && CYCLE.includes(stored) ? stored : 'system';
+  });
 
   function handleClick() {
     const next = CYCLE[(CYCLE.indexOf(theme) + 1) % CYCLE.length];
