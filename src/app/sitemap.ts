@@ -4,7 +4,7 @@ import { getAllTradedTickers } from '@/lib/queries/stock-queries';
 import { getAllBlogSlugs } from '@/lib/blog-posts';
 import { SITE_URL, absoluteUrl } from '@/lib/site-url';
 
-export const revalidate = 86400; // regenerate daily
+export const revalidate = 3600; // regenerate hourly
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static routes
