@@ -11,8 +11,7 @@ import {
   formatDate,
 } from '@/lib/format-trade';
 
-// Always render at runtime so DB data is live; revalidate every 30 minutes
-export const dynamic = 'force-dynamic';
+// ISR: revalidate every 30 minutes
 export const revalidate = 1800;
 
 export const metadata: Metadata = {

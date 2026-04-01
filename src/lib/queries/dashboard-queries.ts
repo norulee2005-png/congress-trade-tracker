@@ -66,6 +66,8 @@ export async function getRecentTrades(days: number = 7, limit: number = 50): Pro
 }
 
 // 7-day and 30-day stats: buy/sell counts and amounts
+// Called twice on the dashboard (getTradeStats(7) + getTradeStats(30)). With ISR (30min revalidate)
+// these two simple queries per render are acceptable — combine if dashboard latency becomes an issue.
 export async function getTradeStats(days: number): Promise<TradeStatRow[]> {
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -105,16 +107,18 @@ export async function getTopBoughtStocks(limit: number = 10): Promise<TopBoughtS
     .limit(limit);
 }
 
+// Module-level cache so repeated ISR renders skip the external fetch
+let krwCache: { value: number; expiresAt: number } | null = null;
+
 // Fetch live USD/KRW exchange rate from a free public API
 export async function getKrwRate(): Promise<number | null> {
+  if (krwCache && Date.now() < krwCache.expiresAt) return krwCache.value;
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD', {
-      next: { revalidate: 3600 }, // cache for 1 hour
-    });
-    if (!res.ok) return null;
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { next: { revalidate: 3600 } });
+    if (!res.ok) return krwCache?.value ?? null;
     const data = await res.json() as { rates?: Record<string, number> };
-    return data.rates?.KRW ?? null;
-  } catch {
-    return null;
-  }
+    const rate = data.rates?.KRW ?? null;
+    if (rate) krwCache = { value: rate, expiresAt: Date.now() + 3600_000 };
+    return rate;
+  } catch { return krwCache?.value ?? null; }
 }

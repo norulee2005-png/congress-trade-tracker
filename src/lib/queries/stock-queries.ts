@@ -41,11 +41,14 @@ export async function getStockByTicker(ticker: string): Promise<Stock | null> {
   return rows[0] ?? null;
 }
 
-// All unique tickers that have at least one trade (for static params)
+// Tickers with at least 2 trades, capped at 500 (for static params generation)
 export async function getAllTradedTickers(): Promise<{ stockTicker: string }[]> {
   return db
-    .selectDistinct({ stockTicker: trades.stockTicker })
-    .from(trades);
+    .select({ stockTicker: trades.stockTicker })
+    .from(trades)
+    .groupBy(trades.stockTicker)
+    .having(sql`COUNT(${trades.id}) >= 2`)
+    .limit(500);
 }
 
 // All trades for a specific stock ticker, joined with politician info
@@ -74,6 +77,7 @@ export async function getStockTrades(ticker: string, limit: number = 100): Promi
 }
 
 // Buy/sell trend counts per month for a ticker
+// Note: TO_CHAR prevents index use. Add functional index if query becomes slow.
 export async function getStockTradeTrend(ticker: string): Promise<StockTradeTrendRow[]> {
   return db
     .select({

@@ -68,8 +68,9 @@ export async function getMostActiveTraders(days: number = 30, limit: number = 10
     .limit(limit);
 }
 
-// Most traded stocks overall (by trade count)
-export async function getMostTradedStocks(limit: number = 20): Promise<MostTradedStock[]> {
+// Most traded stocks in the last N days (default 365)
+export async function getMostTradedStocks(limit: number = 20, days: number = 365): Promise<MostTradedStock[]> {
+  const since = daysAgo(days);
   return db
     .select({
       stockTicker: trades.stockTicker,
@@ -79,13 +80,15 @@ export async function getMostTradedStocks(limit: number = 20): Promise<MostTrade
       sellCount: sql<string>`COUNT(*) FILTER (WHERE ${trades.tradeType} = 'sell')`,
     })
     .from(trades)
+    .where(gte(trades.disclosureDate, since))
     .groupBy(trades.stockTicker, trades.stockName)
     .orderBy(desc(count(trades.id)))
     .limit(limit);
 }
 
-// Party-level buy vs sell counts
-export async function getPartyBuySellRatio(): Promise<PartyBuySellRow[]> {
+// Party-level buy vs sell counts in the last N days (default 365)
+export async function getPartyBuySellRatio(days: number = 365): Promise<PartyBuySellRow[]> {
+  const since = daysAgo(days);
   return db
     .select({
       party: politicians.party,
@@ -94,6 +97,7 @@ export async function getPartyBuySellRatio(): Promise<PartyBuySellRow[]> {
     })
     .from(trades)
     .leftJoin(politicians, eq(trades.politicianId, politicians.id))
+    .where(gte(trades.disclosureDate, since))
     .groupBy(politicians.party, trades.tradeType)
     .orderBy(politicians.party);
 }

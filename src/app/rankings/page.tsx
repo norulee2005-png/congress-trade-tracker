@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // revalidate hourly
+// ISR: revalidate hourly
+export const revalidate = 3600;
 
 export default async function RankingsPage() {
   const [activeTraders, topStocks, partyRatio, topBuyers] = await Promise.all([

@@ -41,9 +41,9 @@ export async function getPoliticianBySlug(slug: string): Promise<Politician | nu
   return rows[0] ?? null;
 }
 
-// Fetch all politicians for static params generation
+// Fetch active politicians for static params generation
 export async function getAllPoliticianSlugs(): Promise<{ slug: string }[]> {
-  return db.select({ slug: politicians.slug }).from(politicians);
+  return db.select({ slug: politicians.slug }).from(politicians).where(eq(politicians.isActive, true));
 }
 
 // Full trade history for a politician, most recent first

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['axios', 'xml2js', 'stripe'],
 };
 
 export default nextConfig;

@@ -32,6 +32,7 @@ export type TradeSearchResult = {
   stockSector: string | null;
 };
 
+// For better ILIKE performance, add pg_trgm GIN indexes on name columns
 export async function searchTrades(filters: TradeFilters): Promise<TradeSearchResult[]> {
   const {
     q,
@@ -73,29 +74,44 @@ export async function searchTrades(filters: TradeFilters): Promise<TradeSearchRe
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  return db
-    .select({
-      id: trades.id,
-      stockTicker: trades.stockTicker,
-      stockName: trades.stockName,
-      tradeType: trades.tradeType,
-      amountRange: trades.amountRange,
-      tradeDate: trades.tradeDate,
-      disclosureDate: trades.disclosureDate,
-      politicianSlug: politicians.slug,
-      politicianNameEn: politicians.nameEn,
-      politicianNameKr: politicians.nameKr,
-      politicianParty: politicians.party,
-      politicianChamber: politicians.chamber,
-      stockSector: stocks.sector,
-    })
+  const baseSelect = {
+    id: trades.id,
+    stockTicker: trades.stockTicker,
+    stockName: trades.stockName,
+    tradeType: trades.tradeType,
+    amountRange: trades.amountRange,
+    tradeDate: trades.tradeDate,
+    disclosureDate: trades.disclosureDate,
+    politicianSlug: politicians.slug,
+    politicianNameEn: politicians.nameEn,
+    politicianNameKr: politicians.nameKr,
+    politicianParty: politicians.party,
+    politicianChamber: politicians.chamber,
+  };
+
+  // Only JOIN stocks when sector filter is present (avoids unnecessary join on every search)
+  if (sector) {
+    return db
+      .select({ ...baseSelect, stockSector: stocks.sector })
+      .from(trades)
+      .leftJoin(politicians, eq(trades.politicianId, politicians.id))
+      .leftJoin(stocks, eq(trades.stockTicker, stocks.ticker))
+      .where(whereClause)
+      .orderBy(desc(trades.disclosureDate))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  const rows = await db
+    .select(baseSelect)
     .from(trades)
     .leftJoin(politicians, eq(trades.politicianId, politicians.id))
-    .leftJoin(stocks, eq(trades.stockTicker, stocks.ticker))
     .where(whereClause)
     .orderBy(desc(trades.disclosureDate))
     .limit(limit)
     .offset(offset);
+
+  return rows.map((r) => ({ ...r, stockSector: null }));
 }
 
 // Return all unique sectors from stocks table (for filter dropdown)
