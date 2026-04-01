@@ -1,0 +1,36 @@
+name: Backfill Historical House Trades
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: 'Space-separated years to backfill (e.g. "2024 2025")'
+        required: false
+        default: '2024 2025'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y poppler-utils
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run House trade backfill
+        run: npx tsx scripts/backfill-house-trades.ts ${{ github.event.inputs.years }}
