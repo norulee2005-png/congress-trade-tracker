@@ -16,22 +16,33 @@ import {
 import { absoluteUrl } from '@/lib/site-url';
 
 export const metadata: Metadata = {
-  title: '랭킹',
-  description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
+  title: '미국 의원 주식 거래 랭킹 — 수익률·거래 빈도·매수 금액',
+  description:
+    '미국 의회 의원 주식 거래 랭킹. 수익률 TOP 10, 거래 빈도 TOP 10, 총 매수 금액 순위, 가장 많이 거래된 종목을 한국어로 확인하세요. STOCK Act 공시 데이터 기반.',
+  keywords: [
+    '의원 주식 수익률',
+    '미국 의원 주식 랭킹',
+    '의회 주식 거래 순위',
+    '미국 의원 주식 투자',
+    'STOCK Act 랭킹',
+    '낸시 펠로시 수익률',
+  ],
   alternates: {
     canonical: '/rankings',
   },
   openGraph: {
-    title: '의원 주식 거래 랭킹 | 의회 주식 추적기',
-    description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
+    title: '미국 의원 주식 거래 랭킹 — 수익률·거래 빈도·매수 금액',
+    description:
+      '미국 의회 의원 주식 거래 랭킹. 수익률 TOP 10, 거래 빈도 TOP 10, 총 매수 금액 순위를 한국어로 확인하세요.',
     url: '/rankings',
     locale: 'ko_KR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '의원 주식 거래 랭킹 | 의회 주식 추적기',
-    description: '가장 활발한 의원, 가장 많이 거래된 종목, 정당별 매수/매도 비율',
+    title: '미국 의원 주식 거래 랭킹 — 수익률·거래 빈도',
+    description:
+      '미국 의회 의원 주식 거래 수익률 TOP 10, 거래 빈도 TOP 10을 한국어로 확인하세요.',
   },
 };
 
@@ -72,6 +83,21 @@ export default async function RankingsPage() {
     })),
   };
 
+  // JSON-LD: ItemList for profit rankings
+  const returnItemListJsonLd = topReturns.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: '수익률 TOP 10 미국 의원 (추정, 최근 365일)',
+    description: '미국 의회 의원 STOCK Act 공시 기준 추정 수익률 TOP 10 랭킹',
+    url: absoluteUrl('/rankings'),
+    itemListElement: topReturns.slice(0, 10).map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: p.politicianNameKr ?? p.politicianNameEn ?? '',
+      url: p.politicianSlug ? absoluteUrl(`/politicians/${p.politicianSlug}`) : absoluteUrl('/rankings'),
+    })),
+  } : null;
+
   // Compute party buy/sell totals for the ratio display
   const partyMap: Record<string, { buys: number; sells: number }> = {};
   for (const row of partyRatio) {
@@ -91,6 +117,12 @@ export default async function RankingsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
+      {returnItemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(returnItemListJsonLd) }}
+        />
+      )}
       <section>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">미국 의원 주식 거래 랭킹</h1>
         <p className="mt-1 text-sm text-zinc-500">최근 30일 기준 — 거래 빈도, 매수 금액, 가장 많이 거래된 종목</p>
