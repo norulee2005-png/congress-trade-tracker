@@ -66,11 +66,62 @@ export default async function DashboardPage() {
     ],
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'STOCK Act이 무엇인가요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'STOCK Act(Stop Trading on Congressional Knowledge Act)는 미국 의원과 그 가족이 직무상 알게 된 비공개 정보를 이용한 주식 거래를 금지하고, 모든 주식 거래를 45일 이내에 공시하도록 의무화한 법입니다. 2012년 제정됐습니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '의원 주식 거래 데이터는 어디서 수집하나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '미국 하원 공식 웹사이트(disclosures.house.gov)에서 공개하는 PTR(정기 거래 보고서)를 자동 수집합니다. 의원들은 주식을 매수·매도한 날로부터 최대 45일 이내에 공시해야 합니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '가장 활발하게 주식을 거래하는 의원은 누구인가요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '전체 공시 데이터 기준 Josh Gottheimer(민주, NJ)가 2,000건 이상으로 가장 많은 거래를 공시했습니다. Lisa McClain(공화, MI), Gilbert Cisneros(민주, CA) 등이 그 뒤를 잇습니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '낸시 펠로시는 어떤 주식을 거래하나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '낸시 펠로시 전 하원의장은 주로 NVDA(엔비디아), AMZN(아마존), GOOGL(알파벳), AAPL(애플) 등 빅테크 종목을 거래합니다. 2026년 1월에는 AMZN·GOOGL을 각각 $50만~$100만 규모로 매수했습니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '의원 주식 거래를 투자에 활용할 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '의원들의 공시 거래는 참고 자료로 활용할 수 있으나, 공시 지연(최대 45일)이 있어 실시간 투자 신호로 사용하기는 어렵습니다. 의원 거래가 직접적인 정책 정보를 반영한다고 단정할 수 없으며, 투자 판단은 본인의 책임하에 이루어져야 합니다.',
+        },
+      },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {/* Header */}
       <section>
