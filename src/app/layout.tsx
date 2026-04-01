@@ -32,6 +32,12 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  alternates: {
+    languages: {
+      'ko': SITE_URL,
+      'x-default': SITE_URL,
+    },
+  },
 };
 
 const orgJsonLd = {
