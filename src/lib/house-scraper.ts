@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as xml2js from 'xml2js';
 import { parseAmountRange, normalizeTradeType, normalizeDate, sleep } from './scraper-utils';
 import { createLogger } from './structured-logger';
+import { parseHouseFilingPdf } from './house-pdf-scraper';
 
 const log = createLogger('house-scraper');
 
@@ -84,55 +85,14 @@ export interface ParsedHouseTrade {
 }
 
 /**
- * Parse individual House PTR XML filing to extract transactions.
+ * Parse individual House PTR filing to extract transactions.
+ * House migrated to PDF-only filings in 2025/2026; XMLs are no longer available.
+ * Delegates to house-pdf-scraper which requires pdftotext (poppler-utils).
  */
 export async function parseHouseFilingXml(filing: RawHouseTransaction): Promise<ParsedHouseTrade[]> {
   if (!filing.url) return [];
-
-  // Individual PTR XML files are at /public_disc/ptr-pdfs/{year}/{docId}.xml
-  // Note: House moved to PDF-only for individual filings; XMLs return 404 and are handled below
-  const fileUrl = `${HOUSE_FD_BASE}/public_disc/ptr-pdfs/${filing.filingYear}/${filing.url}.xml`;
-
-  try {
-    await sleep(300); // Polite rate limit between XML fetches
-    const response = await axios.get(fileUrl, {
-      headers: { 'User-Agent': 'congress-trade-tracker/1.0 (educational project)' },
-      timeout: 30000,
-    });
-
-    const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
-    const parsed = await parser.parseStringPromise(response.data);
-
-    const transactions =
-      parsed?.HouseStockWatcher?.Transactions?.Transaction ??
-      parsed?.PeriodicTransactionReport?.Transactions?.Transaction;
-
-    if (!transactions) return [];
-
-    const items = Array.isArray(transactions) ? transactions : [transactions];
-
-    return items.map((t: Record<string, string>) => ({
-      filingId: filing.filingId,
-      firstName: filing.firstName,
-      lastName: filing.lastName,
-      stateDst: filing.stateDst,
-      ticker: String(t.Ticker ?? t.ticker ?? ''),
-      assetName: String(t.AssetName ?? t.asset_description ?? ''),
-      transactionType: String(t.Type ?? t.transaction_type ?? ''),
-      transactionDate: String(t.TransactionDate ?? t.transaction_date ?? ''),
-      notificationDate: String(t.NotificationDate ?? t.notification_date ?? filing.filingYear + '-01-01'),
-      amount: String(t.Amount ?? t.amount ?? ''),
-      comment: String(t.Comment ?? ''),
-      filingUrl: fileUrl,
-    }));
-  } catch (err) {
-    // Many filings are PDF-only (not XML) — expected 404s are fine
-    if (axios.isAxiosError(err) && err.response?.status === 404) {
-      return [];
-    }
-    log.warn('House filing XML parse failed (non-404)', { filingId: filing.filingId, year: filing.filingYear });
-    return [];
-  }
+  await sleep(200); // Polite rate limit
+  return parseHouseFilingPdf(filing.url, filing.filingYear, filing.firstName, filing.lastName, filing.stateDst);
 }
 
 /**
