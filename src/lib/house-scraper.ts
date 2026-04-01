@@ -1,6 +1,9 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 import { parseAmountRange, normalizeTradeType, sleep } from './scraper-utils';
+import { createLogger } from './structured-logger';
+
+const log = createLogger('house-scraper');
 
 // House Financial Disclosures search API
 const HOUSE_FD_BASE = 'https://disclosures.house.gov';
@@ -58,7 +61,7 @@ export async function fetchHouseFilingIndex(year: number): Promise<RawHouseTrans
         url: String(m.DocID ?? ''),
       }));
   } catch (err) {
-    console.error(`House filing index fetch error (year=${year}):`, err);
+    log.error('House filing index fetch failed', err, { year });
     return [];
   }
 }
@@ -119,7 +122,11 @@ export async function parseHouseFilingXml(filing: RawHouseTransaction): Promise<
       filingUrl: fileUrl,
     }));
   } catch (err) {
-    // Many filings are PDF-only (not XML) — skip silently
+    // Many filings are PDF-only (not XML) — expected 404s are fine
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      return [];
+    }
+    log.warn('House filing XML parse failed (non-404)', { filingId: filing.filingId, year: filing.filingYear });
     return [];
   }
 }

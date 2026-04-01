@@ -8,6 +8,19 @@ import {
   parseHouseFilingXml,
   normalizeHouseTransactions,
 } from './house-scraper';
+import { createLogger } from './structured-logger';
+
+const log = createLogger('trade-pipeline');
+
+export interface PipelineResult {
+  success: boolean;
+  senateInserted: number;
+  houseInserted: number;
+  totalInserted: number;
+  errors: string[];
+  durationMs: number;
+  completedAt: string;
+}
 
 type NormalizedTrade = {
   stockTicker: string;
@@ -122,7 +135,7 @@ async function upsertTrades(normalizedTrades: NormalizedTrade[]): Promise<number
 
       inserted++;
     } catch (err) {
-      console.error(`Failed to insert trade (filingId=${t.filingId}):`, err);
+      log.error('Failed to insert trade', err, { filingId: t.filingId, ticker: t.stockTicker });
     }
   }
 
@@ -133,15 +146,15 @@ async function upsertTrades(normalizedTrades: NormalizedTrade[]): Promise<number
  * Run the full Senate scrape pipeline for a date range.
  */
 export async function runSenatePipeline(fromDate: string, toDate: string): Promise<number> {
-  console.log(`[Senate] Fetching trades ${fromDate} → ${toDate}`);
+  log.info('Senate pipeline started', { fromDate, toDate });
   const raw = await fetchSenateTransactions(fromDate, toDate);
-  console.log(`[Senate] Got ${raw.length} raw transactions`);
+  log.info('Senate raw transactions fetched', { count: raw.length });
 
   const normalized = normalizeSenateTransactions(raw) as NormalizedTrade[];
-  console.log(`[Senate] ${normalized.length} valid stock transactions`);
+  log.info('Senate transactions normalized', { validCount: normalized.length, filteredOut: raw.length - normalized.length });
 
   const count = await upsertTrades(normalized);
-  console.log(`[Senate] Inserted ${count} new trades`);
+  log.info('Senate pipeline completed', { inserted: count });
   return count;
 }
 
@@ -149,9 +162,9 @@ export async function runSenatePipeline(fromDate: string, toDate: string): Promi
  * Run the full House scrape pipeline for a given year.
  */
 export async function runHousePipeline(year: number): Promise<number> {
-  console.log(`[House] Fetching filing index for ${year}`);
+  log.info('House pipeline started', { year });
   const filings = await fetchHouseFilingIndex(year);
-  console.log(`[House] Found ${filings.length} PTR filings`);
+  log.info('House filing index fetched', { filingCount: filings.length, year });
 
   let totalInserted = 0;
   for (const filing of filings) {
@@ -161,26 +174,73 @@ export async function runHousePipeline(year: number): Promise<number> {
     totalInserted += count;
   }
 
-  console.log(`[House] Inserted ${totalInserted} new trades for ${year}`);
+  log.info('House pipeline completed', { inserted: totalInserted, year });
   return totalInserted;
 }
 
 /**
  * Main entry point: run full pipeline for recent data.
- * Called by GitHub Actions cron every 6 hours.
+ * Called by Vercel cron every 6 hours.
+ * Returns structured result for monitoring.
  */
-export async function runFullPipeline(): Promise<void> {
+export async function runFullPipeline(): Promise<PipelineResult> {
+  const startTime = Date.now();
+  const errors: string[] = [];
+  let senateInserted = 0;
+  let houseInserted = 0;
+
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(today.getDate() - 30);
-
   const fmt = (d: Date) => d.toISOString().split('T')[0];
 
-  await runSenatePipeline(fmt(thirtyDaysAgo), fmt(today));
-  await runHousePipeline(today.getFullYear());
+  log.info('Full pipeline started', { fromDate: fmt(thirtyDaysAgo), toDate: fmt(today) });
+
+  try {
+    senateInserted = await runSenatePipeline(fmt(thirtyDaysAgo), fmt(today));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`Senate pipeline failed: ${msg}`);
+    log.error('Senate pipeline failed', err);
+  }
+
+  try {
+    houseInserted = await runHousePipeline(today.getFullYear());
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`House pipeline failed: ${msg}`);
+    log.error('House pipeline failed', err);
+  }
 
   // Also catch prior year data near year boundary
   if (today.getMonth() === 0) {
-    await runHousePipeline(today.getFullYear() - 1);
+    try {
+      houseInserted += await runHousePipeline(today.getFullYear() - 1);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`House prior-year pipeline failed: ${msg}`);
+      log.error('House prior-year pipeline failed', err);
+    }
   }
+
+  const result: PipelineResult = {
+    success: errors.length === 0,
+    senateInserted,
+    houseInserted,
+    totalInserted: senateInserted + houseInserted,
+    errors,
+    durationMs: Date.now() - startTime,
+    completedAt: new Date().toISOString(),
+  };
+
+  log.info('Full pipeline completed', {
+    success: result.success,
+    senateInserted,
+    houseInserted,
+    totalInserted: result.totalInserted,
+    durationMs: result.durationMs,
+    errorCount: errors.length,
+  });
+
+  return result;
 }

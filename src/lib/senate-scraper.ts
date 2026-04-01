@@ -1,6 +1,9 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
 import { parseAmountRange, normalizeTradeType, sleep } from './scraper-utils';
+import { createLogger } from './structured-logger';
+
+const log = createLogger('senate-scraper');
 
 // Senate eFDS (Electronic Financial Disclosure System) base URL
 const SENATE_EFDS_BASE = 'https://efts.senate.gov/LATEST/search-index';
@@ -65,7 +68,7 @@ export async function fetchSenateTransactions(
       from += pageSize;
       await sleep(500); // Polite rate limiting
     } catch (err) {
-      console.error(`Senate eFTS fetch error (from=${from}):`, err);
+      log.error('Senate eFTS fetch failed', err, { offset: from, fromDate, toDate });
       break;
     }
   }
@@ -108,7 +111,7 @@ export async function parseSenateXmlFiling(
       filingUrl,
     }));
   } catch (err) {
-    console.error(`Senate XML parse error for ${filingUrl}:`, err);
+    log.error('Senate XML parse failed', err, { filingUrl });
     return [];
   }
 }
