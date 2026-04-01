@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import NavLinks from './nav-links';
+import ThemeToggle from './theme-toggle';
 import { getSession } from '@/lib/auth-session';
 
 export default async function SiteNav() {
@@ -15,6 +16,7 @@ export default async function SiteNav() {
         <div className="flex items-center gap-2">
           <NavLinks />
           <div className="ml-2 flex items-center gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+            <ThemeToggle />
             {session ? (
               <Link
                 href="/account"

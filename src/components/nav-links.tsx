@@ -8,6 +8,8 @@ const NAV_LINKS = [
   { href: '/rankings', label: '랭킹' },
   { href: '/search', label: '검색' },
   { href: '/top5', label: '🏆 TOP 5' },
+  { href: '/methodology', label: 'STOCK Act' },
+  { href: '/blog', label: '블로그' },
 ];
 
 export default function NavLinks() {
@@ -21,7 +23,7 @@ export default function NavLinks() {
           <Link
             key={href}
             href={href}
-            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`min-h-[44px] flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               active
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                 : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
