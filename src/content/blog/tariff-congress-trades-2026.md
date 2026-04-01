@@ -12,7 +12,7 @@ category: "analysis"
 
 ## HOG (할리데이비슨) — 관세 리스크 속 의원은 매수
 
-할리데이비슨(HOG)은 관세 이슈에 가장 민감한 종목 중 하나입니다. EU의 미국산 오토바이에 대한 보복 관세 가능성이 높아지는 상황에서, **Tim Moore 의원(공화, NC)**은 오히려 매수에 나섰습니다.
+할리데이비슨(HOG)은 관세 이슈에 가장 민감한 종목 중 하나입니다. EU의 미국산 오토바이에 대한 보복 관세 가능성이 높아지는 상황에서, **[Tim Moore](/politicians/tim-moore) 의원(공화, NC)**은 오히려 매수에 나섰습니다.
 
 | 날짜 | 거래 유형 | 금액 |
 |------|-----------|------|
@@ -23,7 +23,7 @@ category: "analysis"
 
 ## LGIH (LGI Homes) — 목재 관세에도 연속 매수
 
-캐나다산 목재에 대한 관세 인상은 미국 주택 건설업체에 직격탄입니다. 그러나 Tim Moore 의원은 **LGI Homes(LGIH)**를 3월 내내 반복 매수했습니다.
+캐나다산 목재에 대한 관세 인상은 미국 주택 건설업체에 직격탄입니다. 그러나 [Tim Moore](/politicians/tim-moore) 의원은 **[LGI Homes(LGIH)](/stocks/LGIH)**를 3월 내내 반복 매수했습니다.
 
 | 날짜 | 거래 유형 | 금액 |
 |------|-----------|------|
@@ -36,7 +36,7 @@ category: "analysis"
 
 ## CVX (셰브론) — 관세발 경기 둔화 우려에 에너지 매도
 
-반면 **David J. Taylor 의원(공화, PA)**은 셰브론(CVX)을 3개월에 걸쳐 지속적으로 **매도**했습니다.
+반면 **[David J. Taylor](/politicians/david-j-taylor) 의원(공화, PA)**은 [셰브론(CVX)](/stocks/CVX)을 3개월에 걸쳐 지속적으로 **매도**했습니다.
 
 | 날짜 | 거래 유형 | 금액 |
 |------|-----------|------|
@@ -62,10 +62,10 @@ category: "analysis"
 
 ## Lam Research (LRCX) — 반도체 장비도 관세 영향권
 
-반도체 장비 기업 **Lam Research(LRCX)**는 중국 수출 규제와 관세 이중 리스크에 노출돼 있습니다.
+반도체 장비 기업 **[Lam Research(LRCX)](/stocks/LRCX)**는 중국 수출 규제와 관세 이중 리스크에 노출돼 있습니다.
 
-- Cleo Fields 의원: 2026-02-03 **매수** $15,001–$50,000
-- David J. Taylor 의원: 반복 매도 후 2026-03-12 **매수**
+- [Cleo Fields](/politicians/cleo-fields) 의원: 2026-02-03 **매수** $15,001–$50,000
+- [David J. Taylor](/politicians/david-j-taylor) 의원: 반복 매도 후 2026-03-12 **매수**
 
 두 의원 모두 하락 후 재진입한 패턴으로, LRCX의 장기 AI 반도체 수요 테마에 베팅한 것으로 해석됩니다.
 

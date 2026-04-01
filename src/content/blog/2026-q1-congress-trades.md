@@ -40,7 +40,7 @@ category: "analysis"
 
 ## 낸시 펠로시의 1월 16일 대규모 매수
 
-가장 주목받는 거래는 낸시 펠로시 전 하원의장의 **2026년 1월 16일 집중 매수**입니다.
+가장 주목받는 거래는 [낸시 펠로시](/politicians/nancy-pelosi) 전 하원의장의 **2026년 1월 16일 집중 매수**입니다.
 
 | 종목 | 거래 유형 | 금액 |
 |------|-----------|------|
@@ -55,11 +55,10 @@ category: "analysis"
 
 1분기 동안 **5명의 의원이 TSM을 매수**했습니다.
 
-- **Gilbert Cisneros** (민주, CA) — 2026-02-26
-- **Julia Letlow** (공화, LA) — 2026-02-02
-- **Richard W. Allen** (공화, GA) — 2026-02-19
-- **Cleo Fields** (민주, LA) — 2026-01-08
-- **Cleo Fields** (민주, LA) — 2026-02-03 (추가 매수 추정)
+- **[Gilbert Cisneros](/politicians/gilbert-cisneros)** (민주, CA) — 2026-02-26
+- **[Julia Letlow](/politicians/julia-letlow)** (공화, LA) — 2026-02-02
+- **[Richard W. Allen](/politicians/richard-w-allen)** (공화, GA) — 2026-02-19
+- **[Cleo Fields](/politicians/cleo-fields)** (민주, LA) — 2026-01-08, 2026-02-03
 
 반도체 수출 통제, CHIPS Act 이행, 미·중 관계 등 정책 이슈와 맞물려 **여야 모두** TSM에 관심을 가진 점이 특징입니다. 의원들은 반도체 관련 법안 심의에 참여하면서도 동시에 관련주를 매수하고 있어 주목됩니다.
 
@@ -67,22 +66,22 @@ category: "analysis"
 
 | 순위 | 의원명 | 소속 | 거래 건수 |
 |------|--------|------|-----------|
-| 1 | **Gilbert Cisneros** | 민주, CA | 219건 |
-| 2 | **David J. Taylor** | 공화, PA | 82건 |
-| 3 | **April McClain Delaney** | 민주, MD | 59건 |
-| 4 | **Julia Letlow** | 공화, LA | 32건 |
-| 5 | **Jonathan Jackson** | 민주, IL | 22건 |
+| 1 | **[Gilbert Cisneros](/politicians/gilbert-cisneros)** | 민주, CA | 219건 |
+| 2 | **[David J. Taylor](/politicians/david-j-taylor)** | 공화, PA | 82건 |
+| 3 | **[April McClain Delaney](/politicians/april-mcclain-delaney)** | 민주, MD | 59건 |
+| 4 | **[Julia Letlow](/politicians/julia-letlow)** | 공화, LA | 32건 |
+| 5 | **[Jonathan Jackson](/politicians/jonathan-jackson)** | 민주, IL | 22건 |
 
 길버트 시스네로스 의원은 1분기에만 **219건**을 거래하며 압도적 1위를 차지했습니다. 하루 평균 2~3건 수준으로, 분산 포트폴리오 운용 스타일이 특징입니다. 2위 데이비드 테일러 의원은 MSFT·AMZN·AVGO·TSM 등 빅테크 종목 위주의 반복 매수 패턴을 보였습니다.
 
 ## 주목할 종목: Cleo Fields의 메가캡 집중 매수
 
-루이지애나 민주당 Cleo Fields 의원은 소규모 거래 빈도보다 **대형 거래 규모**로 눈에 띕니다.
+루이지애나 민주당 [Cleo Fields](/politicians/cleo-fields) 의원은 소규모 거래 빈도보다 **대형 거래 규모**로 눈에 띕니다.
 
-- **META** $100,001–$250,000 매수 (2026-02-03)
-- **GOOGL** $100,001–$250,000 매수 (2026-02-03)
-- **META** $50,001–$100,000 추가 매수 (2026-01-20)
-- **TSM** $1,001–$15,000 매수 (2026-01-08, 2026-02-03)
+- [**META**](/stocks/META) $100,001–$250,000 매수 (2026-02-03)
+- [**GOOGL**](/stocks/GOOGL) $100,001–$250,000 매수 (2026-02-03)
+- [**META**](/stocks/META) $50,001–$100,000 추가 매수 (2026-01-20)
+- [**TSM**](/stocks/TSM) $1,001–$15,000 매수 (2026-01-08, 2026-02-03)
 
 취임 초기에 빅테크·AI 관련주를 집중적으로 담는 패턴으로, 향후 공시가 주목됩니다.
 
