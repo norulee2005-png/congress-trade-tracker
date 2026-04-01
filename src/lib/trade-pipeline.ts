@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db/db-client';
 import { politicians, trades, stocks } from '@/db/schema';
 import { nameToSlug } from './scraper-utils';
@@ -40,102 +40,191 @@ type NormalizedTrade = {
 };
 
 /**
- * Upsert a politician record, returning their DB id.
- * Creates a new record if none exists for this name + chamber combo.
+ * Run up to `limit` async tasks concurrently from an array.
  */
-async function upsertPolitician(
-  firstName: string,
-  lastName: string,
-  chamber: 'senate' | 'house'
-): Promise<string | null> {
-  if (!firstName && !lastName) return null;
+async function pLimit<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = [];
+  let idx = 0;
 
-  const fullName = `${firstName} ${lastName}`.trim();
-  const slug = nameToSlug(fullName);
+  async function worker() {
+    while (idx < tasks.length) {
+      const i = idx++;
+      results[i] = await tasks[i]();
+    }
+  }
 
-  // Check if politician already exists
-  const existing = await db
-    .select({ id: politicians.id })
-    .from(politicians)
-    .where(and(eq(politicians.slug, slug), eq(politicians.chamber, chamber)))
-    .limit(1);
-
-  if (existing.length > 0) return existing[0].id;
-
-  // Insert new politician (minimal info — can be enriched later)
-  const inserted = await db
-    .insert(politicians)
-    .values({
-      firstName,
-      lastName,
-      nameEn: fullName,
-      chamber,
-      slug,
-    })
-    .onConflictDoNothing()
-    .returning({ id: politicians.id });
-
-  return inserted[0]?.id ?? null;
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, worker);
+  await Promise.all(workers);
+  return results;
 }
 
 /**
- * Upsert stock record, returning its DB id.
- */
-async function upsertStock(ticker: string, name?: string | null): Promise<string | null> {
-  if (!ticker) return null;
-
-  const existing = await db
-    .select({ id: stocks.id })
-    .from(stocks)
-    .where(eq(stocks.ticker, ticker))
-    .limit(1);
-
-  if (existing.length > 0) return existing[0].id;
-
-  const inserted = await db
-    .insert(stocks)
-    .values({ ticker, nameEn: name ?? ticker })
-    .onConflictDoNothing()
-    .returning({ id: stocks.id });
-
-  return inserted[0]?.id ?? null;
-}
-
-/**
- * Insert normalized trades into the database, skipping duplicates by filingId.
+ * Bulk-insert normalized trades. Uses bulk SELECT → INSERT pattern to avoid 1500+
+ * sequential round-trips. Single bulk INSERT at end with onConflictDoNothing.
  */
 async function upsertTrades(normalizedTrades: NormalizedTrade[]): Promise<number> {
+  // I10: filter out trades with null/empty filingId
+  const validTrades = normalizedTrades.filter((t) => t.filingId && t.filingId.trim() !== '');
+  if (validTrades.length === 0) return 0;
+
+  // --- Step 1: Resolve politicians ---
+  type PoliticianKey = string; // `${firstName}|${lastName}|${chamber}`
+  const politicianKeys = new Map<PoliticianKey, { firstName: string; lastName: string; chamber: 'senate' | 'house' }>();
+  for (const t of validTrades) {
+    if (!t._firstName && !t._lastName) continue;
+    const key: PoliticianKey = `${t._firstName}|${t._lastName}|${t._chamber}`;
+    if (!politicianKeys.has(key)) {
+      politicianKeys.set(key, { firstName: t._firstName, lastName: t._lastName, chamber: t._chamber });
+    }
+  }
+
+  const politicianIdMap = new Map<PoliticianKey, string>();
+
+  if (politicianKeys.size > 0) {
+    const slugChamberPairs = Array.from(politicianKeys.entries()).map(([, v]) => ({
+      slug: nameToSlug(`${v.firstName} ${v.lastName}`.trim()),
+      chamber: v.chamber,
+      firstName: v.firstName,
+      lastName: v.lastName,
+    }));
+
+    // Bulk SELECT existing politicians
+    const slugList = [...new Set(slugChamberPairs.map((p) => p.slug))];
+    const existing = await db
+      .select({ id: politicians.id, slug: politicians.slug, chamber: politicians.chamber })
+      .from(politicians)
+      .where(inArray(politicians.slug, slugList));
+
+    const existingMap = new Map(existing.map((p) => [`${p.slug}|${p.chamber}`, p.id]));
+
+    // Collect missing politicians
+    const toInsert = slugChamberPairs.filter((p) => !existingMap.has(`${p.slug}|${p.chamber}`));
+
+    if (toInsert.length > 0) {
+      const inserted = await db
+        .insert(politicians)
+        .values(
+          toInsert.map((p) => ({
+            firstName: p.firstName,
+            lastName: p.lastName,
+            nameEn: `${p.firstName} ${p.lastName}`.trim(),
+            chamber: p.chamber,
+            slug: p.slug,
+          }))
+        )
+        .onConflictDoNothing()
+        .returning({ id: politicians.id, slug: politicians.slug, chamber: politicians.chamber });
+
+      for (const p of inserted) {
+        existingMap.set(`${p.slug}|${p.chamber}`, p.id);
+      }
+
+      // Re-query any that conflicted and weren't returned
+      const stillMissing = toInsert.filter((p) => !existingMap.has(`${p.slug}|${p.chamber}`));
+      if (stillMissing.length > 0) {
+        const requeried = await db
+          .select({ id: politicians.id, slug: politicians.slug, chamber: politicians.chamber })
+          .from(politicians)
+          .where(inArray(politicians.slug, stillMissing.map((p) => p.slug)));
+        for (const p of requeried) {
+          existingMap.set(`${p.slug}|${p.chamber}`, p.id);
+        }
+      }
+    }
+
+    for (const [key, v] of politicianKeys.entries()) {
+      const slug = nameToSlug(`${v.firstName} ${v.lastName}`.trim());
+      const id = existingMap.get(`${slug}|${v.chamber}`);
+      if (id) politicianIdMap.set(key, id);
+    }
+  }
+
+  // --- Step 2: Resolve stocks ---
+  const tickerSet = new Set(validTrades.map((t) => t.stockTicker.toUpperCase()));
+  const stockIdMap = new Map<string, string>();
+
+  if (tickerSet.size > 0) {
+    const tickerList = Array.from(tickerSet);
+    const existingStocks = await db
+      .select({ id: stocks.id, ticker: stocks.ticker })
+      .from(stocks)
+      .where(inArray(stocks.ticker, tickerList));
+
+    const existingStockMap = new Map(existingStocks.map((s) => [s.ticker, s.id]));
+
+    const missingTickers = tickerList.filter((tk) => !existingStockMap.has(tk));
+    if (missingTickers.length > 0) {
+      // Build name map from trades for hint
+      const nameHints = new Map<string, string>();
+      for (const t of validTrades) {
+        if (t.stockName && !nameHints.has(t.stockTicker)) {
+          nameHints.set(t.stockTicker, t.stockName);
+        }
+      }
+      const insertedStocks = await db
+        .insert(stocks)
+        .values(missingTickers.map((tk) => ({ ticker: tk, nameEn: nameHints.get(tk) ?? tk })))
+        .onConflictDoNothing()
+        .returning({ id: stocks.id, ticker: stocks.ticker });
+
+      for (const s of insertedStocks) {
+        existingStockMap.set(s.ticker, s.id);
+      }
+
+      // Re-query conflicts
+      const stillMissingStocks = missingTickers.filter((tk) => !existingStockMap.has(tk));
+      if (stillMissingStocks.length > 0) {
+        const requeried = await db
+          .select({ id: stocks.id, ticker: stocks.ticker })
+          .from(stocks)
+          .where(inArray(stocks.ticker, stillMissingStocks));
+        for (const s of requeried) {
+          existingStockMap.set(s.ticker, s.id);
+        }
+      }
+    }
+
+    for (const [tk, id] of existingStockMap.entries()) {
+      stockIdMap.set(tk, id);
+    }
+  }
+
+  // --- Step 3: Bulk INSERT trades ---
+  const tradeRows = validTrades
+    .map((t) => {
+      const politicianKey: PoliticianKey = `${t._firstName}|${t._lastName}|${t._chamber}`;
+      const politicianId = politicianIdMap.get(politicianKey);
+      if (!politicianId) return null;
+      return {
+        politicianId,
+        stockId: stockIdMap.get(t.stockTicker.toUpperCase()) ?? null,
+        stockTicker: t.stockTicker,
+        stockName: t.stockName,
+        tradeType: t.tradeType,
+        amountRange: t.amountRange,
+        amountMin: t.amountMin,
+        amountMax: t.amountMax,
+        tradeDate: t.tradeDate,
+        disclosureDate: t.disclosureDate,
+        filingUrl: t.filingUrl,
+        filingId: t.filingId,
+        comment: t.comment,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  if (tradeRows.length === 0) return 0;
+
+  // Insert in chunks to avoid query size limits
+  const CHUNK = 500;
   let inserted = 0;
-
-  for (const t of normalizedTrades) {
+  for (let i = 0; i < tradeRows.length; i += CHUNK) {
+    const chunk = tradeRows.slice(i, i + CHUNK);
     try {
-      const politicianId = await upsertPolitician(t._firstName, t._lastName, t._chamber);
-      if (!politicianId) continue;
-
-      const stockId = await upsertStock(t.stockTicker, t.stockName);
-
-      await db
-        .insert(trades)
-        .values({
-          politicianId,
-          stockId,
-          stockTicker: t.stockTicker,
-          stockName: t.stockName,
-          tradeType: t.tradeType,
-          amountRange: t.amountRange,
-          amountMin: t.amountMin,
-          amountMax: t.amountMax,
-          tradeDate: t.tradeDate,
-          disclosureDate: t.disclosureDate,
-          filingUrl: t.filingUrl,
-          filingId: t.filingId,
-          comment: t.comment,
-        })
-        .onConflictDoNothing();
-
-      inserted++;
+      await db.insert(trades).values(chunk).onConflictDoNothing();
+      inserted += chunk.length;
     } catch (err) {
-      log.error('Failed to insert trade', err, { filingId: t.filingId, ticker: t.stockTicker });
+      log.error('Bulk trade insert failed', err, { chunkStart: i, chunkSize: chunk.length });
     }
   }
 
@@ -160,19 +249,43 @@ export async function runSenatePipeline(fromDate: string, toDate: string): Promi
 
 /**
  * Run the full House scrape pipeline for a given year.
+ * C5: Processes XML filings in concurrent batches of 8, skipping already-seen filings.
+ * M10: Queries existing house filingId prefixes before processing to skip known filings.
  */
 export async function runHousePipeline(year: number): Promise<number> {
   log.info('House pipeline started', { year });
   const filings = await fetchHouseFilingIndex(year);
   log.info('House filing index fetched', { filingCount: filings.length, year });
 
-  let totalInserted = 0;
-  for (const filing of filings) {
+  // M10: Get set of existing house filing base IDs to skip already-processed filings
+  const existingPrefixes = await db
+    .select({ filingId: trades.filingId })
+    .from(trades)
+    .where(sql`${trades.filingId} LIKE 'house-%'`);
+  const seenFilingIds = new Set(
+    existingPrefixes
+      .map((r) => r.filingId)
+      .filter((id): id is string => id !== null)
+      .map((id) => {
+        // Extract base filing ID: house-{filingId}-... → filingId
+        const parts = id.split('-');
+        return parts.length >= 2 ? parts[1] : '';
+      })
+  );
+
+  const newFilings = filings.filter((f) => !seenFilingIds.has(f.filingId));
+  log.info('House filings after watermark filter', { total: filings.length, new: newFilings.length, skipped: filings.length - newFilings.length });
+
+  // C5: Process in concurrent batches of 8
+  const CONCURRENCY = 8;
+  const tasks = newFilings.map((filing) => async () => {
     const transactions = await parseHouseFilingXml(filing);
     const normalized = normalizeHouseTransactions(transactions) as NormalizedTrade[];
-    const count = await upsertTrades(normalized);
-    totalInserted += count;
-  }
+    return upsertTrades(normalized);
+  });
+
+  const counts = await pLimit(tasks, CONCURRENCY);
+  const totalInserted = counts.reduce((sum, n) => sum + (n ?? 0), 0);
 
   log.info('House pipeline completed', { inserted: totalInserted, year });
   return totalInserted;
@@ -181,7 +294,6 @@ export async function runHousePipeline(year: number): Promise<number> {
 /**
  * Main entry point: run full pipeline for recent data.
  * Called by Vercel cron every 6 hours.
- * Returns structured result for monitoring.
  */
 export async function runFullPipeline(): Promise<PipelineResult> {
   const startTime = Date.now();

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, date, numeric, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, date, numeric, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { politicians } from './politicians';
 import { stocks } from './stocks';
 
@@ -26,7 +26,9 @@ export const trades = pgTable('trades', {
   stockTickerIdx: index('trades_stock_ticker_idx').on(table.stockTicker),
   tradeDateIdx: index('trades_trade_date_idx').on(table.tradeDate),
   disclosureDateIdx: index('trades_disclosure_date_idx').on(table.disclosureDate),
-  filingIdIdx: index('trades_filing_id_idx').on(table.filingId),
+  filingIdUnique: uniqueIndex('trades_filing_id_unique').on(table.filingId),
+  disclosureTradeTypeIdx: index('trades_disclosure_trade_type_idx').on(table.disclosureDate, table.tradeType),
+  politicianTradeTypeIdx: index('trades_politician_trade_type_idx').on(table.politicianId, table.tradeType),
 }));
 
 export type Trade = typeof trades.$inferSelect;

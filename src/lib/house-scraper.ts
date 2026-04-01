@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
-import { parseAmountRange, normalizeTradeType, sleep } from './scraper-utils';
+import { parseAmountRange, normalizeTradeType, normalizeDate, sleep } from './scraper-utils';
 import { createLogger } from './structured-logger';
 
 const log = createLogger('house-scraper');
@@ -133,23 +133,30 @@ export async function parseHouseFilingXml(filing: RawHouseTransaction): Promise<
 
 /**
  * Normalize raw House transactions for database insertion.
+ * Each transaction gets a unique filingId combining filing ID + ticker + dates + type
+ * to prevent duplicate inserts when multiple trades share the same filing.
  */
 export function normalizeHouseTransactions(raw: ParsedHouseTrade[]) {
   return raw
     .filter((t) => t.ticker && t.ticker !== 'N/A' && t.ticker.trim() !== '')
     .map((t) => {
       const { min, max } = parseAmountRange(t.amount);
+      const ticker = t.ticker.toUpperCase().trim();
+      const txDate = normalizeDate(t.transactionDate) ?? t.transactionDate;
+      const discDate = normalizeDate(t.notificationDate) ?? t.notificationDate;
+      // Per-transaction unique ID: filing + ticker + date + type eliminates same-filing dupes
+      const uniqueFilingId = `house-${t.filingId}-${ticker}-${txDate}-${t.transactionType}`;
       return {
-        stockTicker: t.ticker.toUpperCase().trim(),
+        stockTicker: ticker,
         stockName: t.assetName,
         tradeType: normalizeTradeType(t.transactionType),
         amountRange: t.amount,
         amountMin: min?.toString() ?? null,
         amountMax: max?.toString() ?? null,
-        tradeDate: t.transactionDate || null,
-        disclosureDate: t.notificationDate,
+        tradeDate: txDate || null,
+        disclosureDate: discDate,
         filingUrl: t.filingUrl,
-        filingId: `house-${t.filingId}`,
+        filingId: uniqueFilingId,
         comment: t.comment || null,
         // Politician lookup keys
         _firstName: t.firstName,

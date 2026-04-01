@@ -4,3 +4,4 @@ export * from './trades';
 export * from './users';
 export * from './alerts';
 export * from './magic-links';
+export * from './alert-deliveries';

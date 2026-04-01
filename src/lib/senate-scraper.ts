@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as xml2js from 'xml2js';
-import { parseAmountRange, normalizeTradeType, sleep } from './scraper-utils';
+import { parseAmountRange, normalizeTradeType, normalizeDate, sleep } from './scraper-utils';
 import { createLogger } from './structured-logger';
 
 const log = createLogger('senate-scraper');
@@ -98,7 +98,7 @@ export async function parseSenateXmlFiling(
     const items = Array.isArray(transactions) ? transactions : [transactions];
 
     return items.map((t: Record<string, string>) => ({
-      filingId: String(t.FilingID ?? ''),
+      filingId: `senate-${String(t.FilingID ?? '')}`,
       firstName: String(t.FirstName ?? ''),
       lastName: String(t.LastName ?? ''),
       ticker: String(t.Ticker ?? ''),
@@ -131,10 +131,11 @@ export function normalizeSenateTransactions(raw: RawSenateTransaction[]) {
         amountRange: t.amount,
         amountMin: min?.toString() ?? null,
         amountMax: max?.toString() ?? null,
-        tradeDate: t.transactionDate || null,
-        disclosureDate: t.notificationDate,
+        tradeDate: normalizeDate(t.transactionDate) ?? (t.transactionDate || null),
+        disclosureDate: normalizeDate(t.notificationDate) ?? t.notificationDate,
         filingUrl: t.filingUrl,
-        filingId: `senate-${t.filingId}`,
+        // filingId from search API already has no prefix; parseSenateXmlFiling adds senate- itself
+        filingId: t.filingId.startsWith('senate-') ? t.filingId : `senate-${t.filingId}`,
         comment: t.comment || null,
         // Politician lookup key
         _firstName: t.firstName,

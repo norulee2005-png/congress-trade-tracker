@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // US Congress member (Senator or Representative)
 export const politicians = pgTable('politicians', {
@@ -13,12 +13,14 @@ export const politicians = pgTable('politicians', {
   state: varchar('state', { length: 2 }), // 2-letter state code
   district: integer('district'), // House district number (null for Senate)
   committee: text('committee'), // Primary committee membership
-  slug: varchar('slug', { length: 200 }).unique().notNull(), // URL slug e.g. nancy-pelosi
+  slug: varchar('slug', { length: 200 }).notNull(), // URL slug e.g. nancy-pelosi
   photoUrl: text('photo_url'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  slugChamberUnique: uniqueIndex('politicians_slug_chamber_unique').on(table.slug, table.chamber),
+}));
 
 export type Politician = typeof politicians.$inferSelect;
 export type NewPolitician = typeof politicians.$inferInsert;

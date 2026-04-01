@@ -23,6 +23,10 @@ export function parseAmountRange(raw: string): { min: number | null; max: number
     return { min: val, max: null };
   }
 
+  // Plus pattern: "50000+" (number followed by +)
+  const plusMatch = cleaned.match(/^(\d+)\+$/);
+  if (plusMatch) return { min: parseInt(plusMatch[1], 10), max: null };
+
   // Single value fallback
   const singleMatch = cleaned.match(/^(\d+)$/);
   if (singleMatch) {
@@ -38,9 +42,29 @@ export function parseAmountRange(raw: string): { min: number | null; max: number
  */
 export function normalizeTradeType(raw: string): 'buy' | 'sell' | 'exchange' {
   const lower = raw.toLowerCase().trim();
-  if (lower.includes('purchase') || lower === 'buy' || lower.includes('bought')) return 'buy';
-  if (lower.includes('sale') || lower === 'sell' || lower.includes('sold')) return 'sell';
+  if (lower.includes('purchase') || lower === 'buy' || lower.includes('bought') || lower === 'p' || lower.startsWith('p ') || lower.includes('purchase_partial')) return 'buy';
+  if (lower.includes('sale') || lower === 'sell' || lower.includes('sold') || lower === 's' || lower.startsWith('s ') || lower.includes('sale_partial')) return 'sell';
+  if (lower !== 'exchange' && lower !== '') {
+    console.warn(`[scraper-utils] Unknown trade type: "${raw}"`);
+  }
   return 'exchange';
+}
+
+/**
+ * Normalize date strings to YYYY-MM-DD format.
+ * Handles MM/DD/YYYY input from House/Senate filings.
+ */
+export function normalizeDate(raw: string): string | null {
+  if (!raw || raw.trim() === '') return null;
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return raw.trim();
+  // MM/DD/YYYY → YYYY-MM-DD
+  const mmddyyyy = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mmddyyyy) {
+    const [, mm, dd, yyyy] = mmddyyyy;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  return null;
 }
 
 /**
