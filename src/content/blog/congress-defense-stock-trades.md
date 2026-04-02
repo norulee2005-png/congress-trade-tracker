@@ -152,4 +152,4 @@ BigBear.ai는 미 국방부·정보기관에 AI 솔루션을 제공하는 소형
 
 ---
 
-*관련 분석: [리사 맥클레인 분석](/blog/lisa-mcclain-stock-trades) | [길버트 시스네로스 분석](/blog/gilbert-cisneros-stock-trades) | [의원 AI 주식 분석](/blog/congress-ai-stock-trades)*
+*관련 분석: [리사 맥클레인 분석](/blog/lisa-mcclain-stock-trades) | [길버트 시스네로스 분석](/blog/gilbert-cisneros-stock-trades) | [의원 AI 주식 분석](/blog/congress-ai-stock-trades) | [관세 충격 전 의원 거래](/blog/tariff-congress-trades-2026)*

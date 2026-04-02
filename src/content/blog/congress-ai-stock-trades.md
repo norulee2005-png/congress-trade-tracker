@@ -90,4 +90,4 @@ category: "analysis"
 
 ---
 
-*관련 분석: [MTG 주식 거래 분석](/blog/marjorie-taylor-greene-stock-trades) | [낸시 펠로시 분석](/blog/nancy-pelosi-stock-trades) | [엔비디아 의원 거래](/blog/nvda-congress-trades)*
+*관련 분석: [MTG 주식 거래 분석](/blog/marjorie-taylor-greene-stock-trades) | [낸시 펠로시 분석](/blog/nancy-pelosi-stock-trades) | [엔비디아 의원 거래](/blog/nvda-congress-trades) | [방산주 의원 거래](/blog/congress-defense-stock-trades)*

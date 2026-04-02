@@ -21,6 +21,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   announcement: '공지',
   education: '교육',
   analysis: '분석',
+  guide: '가이드',
+  politician: '의원분석',
 };
 
 export default function BlogIndexPage() {
