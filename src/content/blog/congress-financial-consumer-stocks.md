@@ -91,4 +91,4 @@ JPM은 특히 **공화당 의원들의 매수**가 두드러집니다. 금융규
 
 ---
 
-*관련 분석: [헬스케어 주식 분석](/blog/congress-healthcare-stock-trades) | [에너지 주식 분석](/blog/congress-energy-stock-trades) | [빅테크 분석](/blog/bigtech-aapl-msft-amzn-congress-trades) | [방산주 분석](/blog/congress-defense-stock-trades)*
+*관련 분석: [헬스케어 주식 분석](/blog/congress-healthcare-stock-trades) | [에너지 주식 분석](/blog/congress-energy-stock-trades) | [빅테크 분석](/blog/bigtech-aapl-msft-amzn-congress-trades) | [방산주 분석](/blog/congress-defense-stock-trades) | [케빈 허른 분석](/blog/kevin-hern-stock-trades)*
